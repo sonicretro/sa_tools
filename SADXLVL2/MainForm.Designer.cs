@@ -103,6 +103,7 @@
             this.toolKnuckles = new System.Windows.Forms.ToolStripButton();
             this.toolTails = new System.Windows.Forms.ToolStripButton();
             this.toolSonic = new System.Windows.Forms.ToolStripButton();
+            this.playTestButton = new System.Windows.Forms.ToolStripButton();
             this.menuStrip1.SuspendLayout();
             this.contextMenuStrip1.SuspendLayout();
             this.splitContainer1.Panel1.SuspendLayout();
@@ -651,7 +652,8 @@
             this.toolAmy,
             this.toolKnuckles,
             this.toolTails,
-            this.toolSonic});
+            this.toolSonic,
+            this.playTestButton});
             this.toolStrip1.Location = new System.Drawing.Point(0, 24);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(584, 25);
@@ -791,6 +793,19 @@
             this.toolSonic.ToolTipText = "Switch to Sonic\'s item layout";
             this.toolSonic.Click += new System.EventHandler(this.onClickCharacterButton);
             // 
+            // playTestButton
+            // 
+            this.playTestButton.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
+            this.playTestButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.playTestButton.Image = global::SonicRetro.SAModel.SADXLVL2.Properties.Resources.PlayButton;
+            this.playTestButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.playTestButton.Margin = new System.Windows.Forms.Padding(0, 1, 23, 2);
+            this.playTestButton.Name = "playTestButton";
+            this.playTestButton.Size = new System.Drawing.Size(23, 22);
+            this.playTestButton.Text = "toolStripButton1";
+            this.playTestButton.ToolTipText = "Playtest in-game";
+            this.playTestButton.Click += new System.EventHandler(this.playTestButton_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -895,6 +910,7 @@
 		private System.Windows.Forms.ToolStripMenuItem toolClearCamItems;
 		private System.Windows.Forms.ToolStripSeparator toolStripMenuItem2;
 		private System.Windows.Forms.ToolStripMenuItem pointToolStripMenuItem;
+        private System.Windows.Forms.ToolStripButton playTestButton;
     }
 }
 

@@ -2621,5 +2621,22 @@ namespace SonicRetro.SAModel.SADXLVL2
 				LevelData_StateChanged();
 			}
 		}
+
+        private void playTestButton_Click(object sender, EventArgs e)
+        {
+            PlayTestLevel();
+        }
+
+        private void PlayTestLevel()
+        {
+            // Go through all of the data INI files in the mod.ini
+            // within each one, look at each file listed. Compare the project and mod versions. If the project version is different, overwrite the mod version with it.
+
+            // save spawn data somewhere where modloader can pick up on it
+
+            // set the current mod to this one
+
+            // start sonic.exe with the -testspawn flag
+        }
 	}
 }
