@@ -33,6 +33,7 @@
             this.gameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.sADXToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.sA2ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.projectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -48,7 +49,6 @@
             this.CPlusExportButton = new System.Windows.Forms.Button();
             this.IniExportButton = new System.Windows.Forms.Button();
             this.folderBrowser = new System.Windows.Forms.FolderBrowserDialog();
-            this.projectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -89,7 +89,7 @@
             this.sADXToolStripMenuItem.CheckOnClick = true;
             this.sADXToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.sADXToolStripMenuItem.Name = "sADXToolStripMenuItem";
-            this.sADXToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.sADXToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
             this.sADXToolStripMenuItem.Text = "SADX";
             this.sADXToolStripMenuItem.Click += new System.EventHandler(this.sADXToolStripMenuItem_Click);
             // 
@@ -97,9 +97,16 @@
             // 
             this.sA2ToolStripMenuItem.CheckOnClick = true;
             this.sA2ToolStripMenuItem.Name = "sA2ToolStripMenuItem";
-            this.sA2ToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.sA2ToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
             this.sA2ToolStripMenuItem.Text = "SA2";
             this.sA2ToolStripMenuItem.Click += new System.EventHandler(this.sA2ToolStripMenuItem_Click);
+            // 
+            // projectToolStripMenuItem
+            // 
+            this.projectToolStripMenuItem.Name = "projectToolStripMenuItem";
+            this.projectToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.projectToolStripMenuItem.Text = "&Project";
+            this.projectToolStripMenuItem.Click += new System.EventHandler(this.projectToolStripMenuItem_Click);
             // 
             // openToolStripMenuItem
             // 
@@ -126,7 +133,7 @@
             // aboutToolStripMenuItem
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(102, 22);
             this.aboutToolStripMenuItem.Text = "&About";
             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
@@ -235,18 +242,11 @@
             this.IniExportButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.IniExportButton.Location = new System.Drawing.Point(460, 527);
             this.IniExportButton.Name = "IniExportButton";
-            this.IniExportButton.Size = new System.Drawing.Size(64, 23);
+            this.IniExportButton.Size = new System.Drawing.Size(85, 23);
             this.IniExportButton.TabIndex = 7;
-            this.IniExportButton.Text = "Export INI";
+            this.IniExportButton.Text = "Export File List";
             this.IniExportButton.UseVisualStyleBackColor = true;
             this.IniExportButton.Click += new System.EventHandler(this.INIExport_Click);
-            // 
-            // projectToolStripMenuItem
-            // 
-            this.projectToolStripMenuItem.Name = "projectToolStripMenuItem";
-            this.projectToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
-            this.projectToolStripMenuItem.Text = "&Project";
-            this.projectToolStripMenuItem.Click += new System.EventHandler(this.projectToolStripMenuItem_Click);
             // 
             // ModBuilder
             // 

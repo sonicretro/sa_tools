@@ -42,13 +42,17 @@
             this.splitBackgroundWorker = new System.ComponentModel.BackgroundWorker();
             this.advancedSettingsButton = new System.Windows.Forms.Button();
             this.helpButton = new System.Windows.Forms.Button();
+            this.authorLabel = new System.Windows.Forms.Label();
+            this.authorText = new System.Windows.Forms.TextBox();
+            this.descriptionLabel = new System.Windows.Forms.Label();
+            this.descriptionText = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // cancelButton
             // 
-            this.cancelButton.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.cancelButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cancelButton.Location = new System.Drawing.Point(179, 169);
+            this.cancelButton.Location = new System.Drawing.Point(179, 208);
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(75, 23);
             this.cancelButton.TabIndex = 0;
@@ -58,9 +62,9 @@
             // 
             // acceptButton
             // 
-            this.acceptButton.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.acceptButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.acceptButton.Enabled = false;
-            this.acceptButton.Location = new System.Drawing.Point(262, 169);
+            this.acceptButton.Location = new System.Drawing.Point(262, 208);
             this.acceptButton.Name = "acceptButton";
             this.acceptButton.Size = new System.Drawing.Size(75, 23);
             this.acceptButton.TabIndex = 1;
@@ -71,7 +75,7 @@
             // GameDirectoryLabel
             // 
             this.GameDirectoryLabel.AutoSize = true;
-            this.GameDirectoryLabel.Location = new System.Drawing.Point(23, 64);
+            this.GameDirectoryLabel.Location = new System.Drawing.Point(23, 126);
             this.GameDirectoryLabel.Name = "GameDirectoryLabel";
             this.GameDirectoryLabel.Size = new System.Drawing.Size(83, 13);
             this.GameDirectoryLabel.TabIndex = 2;
@@ -79,7 +83,7 @@
             // 
             // gamePathTextBox
             // 
-            this.gamePathTextBox.Location = new System.Drawing.Point(26, 80);
+            this.gamePathTextBox.Location = new System.Drawing.Point(26, 142);
             this.gamePathTextBox.Name = "gamePathTextBox";
             this.gamePathTextBox.Size = new System.Drawing.Size(228, 20);
             this.gamePathTextBox.TabIndex = 3;
@@ -104,7 +108,7 @@
             // 
             // browseButton
             // 
-            this.browseButton.Location = new System.Drawing.Point(260, 79);
+            this.browseButton.Location = new System.Drawing.Point(260, 141);
             this.browseButton.Name = "browseButton";
             this.browseButton.Size = new System.Drawing.Size(75, 23);
             this.browseButton.TabIndex = 6;
@@ -115,7 +119,7 @@
             // GameTypeLabel
             // 
             this.GameTypeLabel.AutoSize = true;
-            this.GameTypeLabel.Location = new System.Drawing.Point(23, 113);
+            this.GameTypeLabel.Location = new System.Drawing.Point(23, 165);
             this.GameTypeLabel.Name = "GameTypeLabel";
             this.GameTypeLabel.Size = new System.Drawing.Size(38, 13);
             this.GameTypeLabel.TabIndex = 7;
@@ -125,7 +129,7 @@
             // 
             this.SADXRadioButton.AutoSize = true;
             this.SADXRadioButton.Checked = true;
-            this.SADXRadioButton.Location = new System.Drawing.Point(26, 129);
+            this.SADXRadioButton.Location = new System.Drawing.Point(26, 181);
             this.SADXRadioButton.Name = "SADXRadioButton";
             this.SADXRadioButton.Size = new System.Drawing.Size(101, 17);
             this.SADXRadioButton.TabIndex = 8;
@@ -137,7 +141,7 @@
             // SA2PCButton
             // 
             this.SA2PCButton.AutoSize = true;
-            this.SA2PCButton.Location = new System.Drawing.Point(208, 129);
+            this.SA2PCButton.Location = new System.Drawing.Point(208, 181);
             this.SA2PCButton.Name = "SA2PCButton";
             this.SA2PCButton.Size = new System.Drawing.Size(59, 17);
             this.SA2PCButton.TabIndex = 9;
@@ -156,7 +160,8 @@
             // 
             // advancedSettingsButton
             // 
-            this.advancedSettingsButton.Location = new System.Drawing.Point(8, 169);
+            this.advancedSettingsButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.advancedSettingsButton.Location = new System.Drawing.Point(8, 208);
             this.advancedSettingsButton.Name = "advancedSettingsButton";
             this.advancedSettingsButton.Size = new System.Drawing.Size(73, 23);
             this.advancedSettingsButton.TabIndex = 10;
@@ -166,7 +171,8 @@
             // 
             // helpButton
             // 
-            this.helpButton.Location = new System.Drawing.Point(87, 169);
+            this.helpButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.helpButton.Location = new System.Drawing.Point(87, 208);
             this.helpButton.Name = "helpButton";
             this.helpButton.Size = new System.Drawing.Size(75, 23);
             this.helpButton.TabIndex = 11;
@@ -174,13 +180,49 @@
             this.helpButton.UseVisualStyleBackColor = true;
             this.helpButton.Click += new System.EventHandler(this.helpButton_Click);
             // 
+            // authorLabel
+            // 
+            this.authorLabel.AutoSize = true;
+            this.authorLabel.Location = new System.Drawing.Point(23, 48);
+            this.authorLabel.Name = "authorLabel";
+            this.authorLabel.Size = new System.Drawing.Size(41, 13);
+            this.authorLabel.TabIndex = 12;
+            this.authorLabel.Text = "Author:";
+            // 
+            // authorText
+            // 
+            this.authorText.Location = new System.Drawing.Point(26, 64);
+            this.authorText.Name = "authorText";
+            this.authorText.Size = new System.Drawing.Size(228, 20);
+            this.authorText.TabIndex = 13;
+            // 
+            // descriptionLabel
+            // 
+            this.descriptionLabel.AutoSize = true;
+            this.descriptionLabel.Location = new System.Drawing.Point(23, 87);
+            this.descriptionLabel.Name = "descriptionLabel";
+            this.descriptionLabel.Size = new System.Drawing.Size(63, 13);
+            this.descriptionLabel.TabIndex = 14;
+            this.descriptionLabel.Text = "Description:";
+            // 
+            // descriptionText
+            // 
+            this.descriptionText.Location = new System.Drawing.Point(26, 103);
+            this.descriptionText.Name = "descriptionText";
+            this.descriptionText.Size = new System.Drawing.Size(309, 20);
+            this.descriptionText.TabIndex = 15;
+            // 
             // NewProject
             // 
             this.AcceptButton = this.acceptButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.cancelButton;
-            this.ClientSize = new System.Drawing.Size(349, 204);
+            this.ClientSize = new System.Drawing.Size(349, 243);
+            this.Controls.Add(this.descriptionText);
+            this.Controls.Add(this.descriptionLabel);
+            this.Controls.Add(this.authorText);
+            this.Controls.Add(this.authorLabel);
             this.Controls.Add(this.helpButton);
             this.Controls.Add(this.advancedSettingsButton);
             this.Controls.Add(this.SA2PCButton);
@@ -219,5 +261,9 @@
         public System.Windows.Forms.RadioButton SA2PCButton;
         private System.Windows.Forms.Button advancedSettingsButton;
         private System.Windows.Forms.Button helpButton;
+        private System.Windows.Forms.Label authorLabel;
+        private System.Windows.Forms.TextBox authorText;
+        private System.Windows.Forms.Label descriptionLabel;
+        private System.Windows.Forms.TextBox descriptionText;
 	}
 }

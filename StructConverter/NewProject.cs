@@ -257,6 +257,15 @@ namespace ModGenerator
                         Directory.CreateDirectory(string.Concat(projectFolder, "\\objdefs\\"));
                         Directory.CreateDirectory(string.Concat(projectFolder, "\\dllcache\\")).Attributes |= FileAttributes.Hidden;
                         #endregion
+
+                        #region Creating mod.ini
+                        StreamWriter modIniFile = File.CreateText(Path.Combine(projectFolder, "mod.ini"));
+                        modIniFile.WriteLine(string.Concat("Name=", ProjectNameText.Text));
+                        modIniFile.WriteLine(string.Concat("Description=", descriptionText.Text));
+                        modIniFile.WriteLine(string.Concat("Author=", authorText.Text));
+                        modIniFile.Flush();
+                        modIniFile.Close();
+                        #endregion
                     }
                     else // Cancel. Message should already be saved.
                     {

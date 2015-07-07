@@ -107,7 +107,7 @@ namespace ModGenerator
             foreach(string iniFile in dataMappingFiles)
             {
                 if (Path.GetFileName(iniFile) == "sonic_data.ini") LoadINI(iniFile);
-                else MessageBox.Show("Couldn't load DLL data mapping ini - it uses a different format.");
+                //else MessageBox.Show("Couldn't load DLL data mapping ini - it uses a different format."); // todo: merge this with DLLModGenerator, handle the DLLs
             }
         }
 
@@ -871,28 +871,36 @@ namespace ModGenerator
 
         private void ExportOldCPP_Click(object sender, EventArgs e)
         {
-            using (SaveFileDialog fd = new SaveFileDialog() { DefaultExt = "cpp", Filter = "C++ source files|*.cpp", InitialDirectory = Environment.CurrentDirectory, RestoreDirectory = true })
-                if (fd.ShowDialog(this) == DialogResult.OK)
-                    using (TextWriter writer = File.CreateText(fd.FileName))
+            using (SaveFileDialog fileDialog = new SaveFileDialog() { DefaultExt = "cpp", Filter = "C++ source files|*.cpp", InitialDirectory = Path.Combine(projectFolder, "src"), RestoreDirectory = true })
+            {
+                if (fileDialog.ShowDialog(this) == DialogResult.OK)
+                {
+                    using (TextWriter writer = File.CreateText(fileDialog.FileName))
                     {
-						bool SA2 = IniData.Game == Game.SA2 || IniData.Game == Game.SA2B;
-						ExportCPP(writer, SA2);
+                        bool SA2 = IniData.Game == Game.SA2 || IniData.Game == Game.SA2B;
+                        ExportCPP(writer, SA2);
                         writer.WriteLine("extern \"C\" __declspec(dllexport) const ModInfo {0}ModInfo = {{ ModLoaderVer, NULL, NULL, 0, NULL, 0, NULL, 0, arrayptrandlength(pointers) }};", SA2 ? "SA2" : "SADX");
                     }
+                }
+            }
         }
 
 		private void ExportNewCPP_Click(object sender, EventArgs e)
 		{
-			using (SaveFileDialog fd = new SaveFileDialog() { DefaultExt = "cpp", Filter = "C++ source files|*.cpp", InitialDirectory = Environment.CurrentDirectory, RestoreDirectory = true })
-				if (fd.ShowDialog(this) == DialogResult.OK)
-					using (TextWriter writer = File.CreateText(fd.FileName))
-					{
-						bool SA2 = IniData.Game == Game.SA2 || IniData.Game == Game.SA2B;
-						ExportCPP(writer, SA2);
-						writer.WriteLine("extern \"C\" __declspec(dllexport) const PointerList Pointers = { arrayptrandlength(pointers) };");
-						writer.WriteLine();
-						writer.WriteLine("extern \"C\" __declspec(dllexport) const ModInfo {0}ModInfo = {{ ModLoaderVer }};", SA2 ? "SA2" : "SADX");
-					}
+            using (SaveFileDialog fileDialog = new SaveFileDialog() { DefaultExt = "cpp", Filter = "C++ source files|*.cpp", InitialDirectory = Path.Combine(projectFolder, "src"), RestoreDirectory = true })
+            {
+                if (fileDialog.ShowDialog(this) == DialogResult.OK)
+                {
+                    using (TextWriter writer = File.CreateText(fileDialog.FileName))
+                    {
+                        bool SA2 = IniData.Game == Game.SA2 || IniData.Game == Game.SA2B;
+                        ExportCPP(writer, SA2);
+                        writer.WriteLine("extern \"C\" __declspec(dllexport) const PointerList Pointers = { arrayptrandlength(pointers) };");
+                        writer.WriteLine();
+                        writer.WriteLine("extern \"C\" __declspec(dllexport) const ModInfo {0}ModInfo = {{ ModLoaderVer }};", SA2 ? "SA2" : "SADX");
+                    }
+                }
+            }
 		}
 
 		private void CopyDirectory(DirectoryInfo src, string dst)
@@ -907,44 +915,44 @@ namespace ModGenerator
 
 		private void INIExport_Click(object sender, EventArgs e)
 		{
-            using (SaveFileDialog fd = new SaveFileDialog() { DefaultExt = "ini", Filter = "INI files|*.ini", InitialDirectory = Environment.CurrentDirectory, RestoreDirectory = true })
-				if (fd.ShowDialog(this) == DialogResult.OK)
-				{
-					string dstfol = Path.GetDirectoryName(fd.FileName);
-					IniData output = new IniData();
-					output.Files = new Dictionary<string, SA_Tools.FileInfo>();
-					foreach (KeyValuePair<string, SA_Tools.FileInfo> item in IniData.Files.Where((a, i) => listView1.CheckedIndices.Contains(i)))
-					{
-						string projectRelativeFileLocation = Path.Combine(projectFolder, item.Value.Filename); // getting project-relative location
+            string destinationFolder = Path.Combine(Path.Combine(gameFolder, "mods"), projectName);
 
-						if (Directory.Exists(projectRelativeFileLocation))
-							Directory.CreateDirectory(Path.Combine(dstfol, projectRelativeFileLocation));
-						else
-							Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(dstfol, projectRelativeFileLocation)));
-						switch (item.Value.Type)
+			IniData output = new IniData();
+			output.Files = new Dictionary<string, SA_Tools.FileInfo>();
+			foreach (KeyValuePair<string, SA_Tools.FileInfo> item in IniData.Files.Where((a, i) => listView1.CheckedIndices.Contains(i)))
+			{
+                Environment.CurrentDirectory = projectFolder;
+				string projectRelativeFileLocation = item.Value.Filename; // getting project-relative location (full path)
+
+				if (Directory.Exists(projectRelativeFileLocation)) // this is actually trying to check and see if the item in question is a directory
+					Directory.CreateDirectory(Path.Combine(destinationFolder, projectRelativeFileLocation)); // this won't work at all, since you can't combine two absolute paths
+				else // this is how we know it is NOT a directory. But we'll need to turn it into one before we can drop our file into it.
+					Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(destinationFolder, projectRelativeFileLocation)));
+
+				switch (item.Value.Type)
+				{
+					case "deathzone":
+						DeathZoneFlags[] list = DeathZoneFlagsList.Load(projectRelativeFileLocation);
+						string path = Path.GetDirectoryName(projectRelativeFileLocation);
+						for (int j = 0; j < list.Length; j++)
 						{
-							case "deathzone":
-								DeathZoneFlags[] list = DeathZoneFlagsList.Load(projectRelativeFileLocation);
-								string path = Path.GetDirectoryName(projectRelativeFileLocation);
-								for (int j = 0; j < list.Length; j++)
-								{
-									System.IO.FileInfo fil = new System.IO.FileInfo(Path.Combine(path, j.ToString(NumberFormatInfo.InvariantInfo) + ".sa1mdl"));
-									fil.CopyTo(Path.Combine(Path.Combine(dstfol, path), j.ToString(NumberFormatInfo.InvariantInfo)), true);
-								}
-								File.Copy(projectRelativeFileLocation, Path.Combine(dstfol, projectRelativeFileLocation), true);
-								break;
-							default:
-								if (Directory.Exists(projectRelativeFileLocation))
-									CopyDirectory(new DirectoryInfo(projectRelativeFileLocation), Path.Combine(dstfol, projectRelativeFileLocation));
-								else
-									File.Copy(projectRelativeFileLocation, Path.Combine(dstfol, projectRelativeFileLocation), true);
-								break;
+							System.IO.FileInfo file = new System.IO.FileInfo(Path.Combine(path, j.ToString(NumberFormatInfo.InvariantInfo) + ".sa1mdl"));
+							file.CopyTo(Path.Combine(Path.Combine(destinationFolder, path), j.ToString(NumberFormatInfo.InvariantInfo)), true);
 						}
-						item.Value.MD5Hash = null;
-						output.Files.Add(item.Key, item.Value);
-					}
-					IniSerializer.Serialize(output, fd.FileName);
+						File.Copy(projectRelativeFileLocation, Path.Combine(destinationFolder, projectRelativeFileLocation), true);
+						break;
+					default:
+						if (Directory.Exists(projectRelativeFileLocation))
+							CopyDirectory(new DirectoryInfo(projectRelativeFileLocation), Path.Combine(destinationFolder, projectRelativeFileLocation));
+						else
+							File.Copy(projectRelativeFileLocation, Path.Combine(destinationFolder, projectRelativeFileLocation), true);
+						break;
 				}
+				item.Value.MD5Hash = null;
+				output.Files.Add(item.Key, item.Value);
+			}
+
+			IniSerializer.Serialize(output, Path.Combine(destinationFolder, "exeData.ini"));
 		}
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
