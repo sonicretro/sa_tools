@@ -207,7 +207,7 @@ namespace ModGenerator
 
                                 if (!Split.DLL(args, out errorMessage))
                                 {
-                                    cancellationMessage = string.Format("There was an error splitting {0}.\nThe problem was: {1}\nAborting. Your mod has NOT been successfully generated.\nReport this to #x-hax irc.badnik.net", errorMessage);
+                                    cancellationMessage = string.Format("There was an error splitting {0}.\nThe problem was: {1}\nAborting. Your mod has NOT been successfully generated.\nReport this to #x-hax irc.badnik.net", file.Key + "DLL", errorMessage);
                                     splitBackgroundWorker.CancelAsync();
                                     return;
                                 }
