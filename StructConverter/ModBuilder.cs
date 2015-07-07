@@ -1007,8 +1007,10 @@ namespace ModGenerator
             }
 
             // copy mod.ini to mod folder
-            File.Copy(modIniFile, Path.Combine(destinationFolder, "mod.ini"));
+            File.Copy(modIniFile, Path.Combine(destinationFolder, "mod.ini"), true);
             #endregion
+
+            MessageBox.Show("Done!");
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
