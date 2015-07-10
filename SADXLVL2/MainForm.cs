@@ -42,12 +42,18 @@ namespace SonicRetro.SAModel.SADXLVL2
 		}
 
 		internal Device d3ddevice;
-		SAEditorCommon.IniData ini;
+		SAEditorCommon.EditorUniverseData ini;
 		EditorCamera cam = new EditorCamera(EditorOptions.RenderDrawDistance);
 		UI.EditorDataViewer dataViewer;
+
+		// level data related variables
 		string levelID;
 		internal string levelName;
 		bool isStageLoaded;
+		List<string> exeDataChangedFiles; // all of the sonic.exe files we've modified during this session
+										  // We'll need to change this to accomodate dll files later
+		SA_Tools.DataMapping sonicExeINIData; // our original sonic.exe datamapping, md5's and all. 
+		
 		EditorItemSelection selectedItems = new EditorItemSelection();
 		Dictionary<string, List<string>> levelNames;
 		bool lookKeyDown;
@@ -102,10 +108,10 @@ namespace SonicRetro.SAModel.SADXLVL2
             // todo: implement a 'recent project' storage variable in the settings, then try loading it here.
             if(Settings.RecentProject != "")
             {
-                string projectINIFile = string.Concat(Settings.GamePath, "\\", Settings.RecentProject, "\\sadxlvl.ini");
+                string projectINIFile = string.Concat(Settings.GamePath, "\\projects\\", Settings.RecentProject, "\\sadxlvl.ini");
                 if(File.Exists(projectINIFile))
                 {
-                    SAEditorCommon.EditorOptions.ProjectPath = string.Concat(Settings.GamePath, "\\", Settings.RecentProject, "\\");
+                    SAEditorCommon.EditorOptions.ProjectPath = string.Concat(Settings.GamePath, "\\projects\\", Settings.RecentProject);
                     SAEditorCommon.EditorOptions.ProjectName = Settings.RecentProject;
 
                     // open our current project.
@@ -124,7 +130,7 @@ namespace SonicRetro.SAModel.SADXLVL2
         void LoadProject_Shown(object sender, EventArgs e)
         {
             this.Shown -= LoadProject_Shown;
-            string projectINIFile = string.Concat(Settings.GamePath, "\\", Settings.RecentProject, "\\sadxlvl.ini");
+			string projectINIFile = string.Concat(Settings.GamePath, "\\projects\\", Settings.RecentProject, "\\sadxlvl.ini");
             LoadINI(projectINIFile);
             ShowLevelSelect();
         }
@@ -220,11 +226,11 @@ namespace SonicRetro.SAModel.SADXLVL2
 		private void LoadINI(string filename)
 		{
 			isStageLoaded = false;
-			ini = SAEditorCommon.IniData.Load(filename);
+			ini = SAEditorCommon.EditorUniverseData.Load(filename);
 			Environment.CurrentDirectory = Path.GetDirectoryName(filename);
 			levelNames = new Dictionary<string, List<string>>();
 
-			foreach (KeyValuePair<string, IniLevelData> item in ini.Levels)
+			foreach (KeyValuePair<string, EditorLevelData> item in ini.Levels)
 			{
 				if (string.IsNullOrEmpty(item.Key))
 					continue;
@@ -499,7 +505,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 				using (ProgressDialog progress = new ProgressDialog("Loading stage: " + levelName, steps))
 				{
-					IniLevelData level = ini.Levels[levelID];
+					EditorLevelData level = ini.Levels[levelID];
 
                     string sysFallbackPath = Path.Combine(SAEditorCommon.EditorOptions.GamePath, ini.SystemPath);
                     string syspath = Path.Combine(SAEditorCommon.EditorOptions.ProjectPath, ini.SystemPath);
@@ -571,7 +577,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 					{
 						progress.SetStep(string.Format("{0}/{1}", (i + 1), LevelData.StartPositions.Length));
 
-						IniCharInfo character;
+						EditorCharacterInfo character;
 						if (i == 0 && levelact.Level == SA1LevelIDs.PerfectChaos)
 							character = ini.Characters["SuperSonic"];
 						else
@@ -1246,7 +1252,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			progress.Show(this);
 			Application.DoEvents();
 
-			IniLevelData level = ini.Levels[levelID];
+			EditorLevelData level = ini.Levels[levelID];
             string syspath = Path.Combine(SAEditorCommon.EditorOptions.ProjectPath, ini.SystemPath);
             Environment.CurrentDirectory = EditorOptions.ProjectPath; // save everything to the project!
 

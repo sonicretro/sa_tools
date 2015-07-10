@@ -62,7 +62,7 @@ namespace SADXTweaker2
         private void LoadINI(string filename)
         {
             CloseChildWindows();
-            Program.IniData = IniSerializer.Deserialize<IniData>(filename);
+            Program.IniData = IniSerializer.Deserialize<DataMapping>(filename);
             windowToolStripMenuItem.Enabled = true;
             if (Settings.MRUList.Contains(filename))
             {

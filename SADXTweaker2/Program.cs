@@ -10,7 +10,7 @@ namespace SADXTweaker2
     {
         internal static string[] args;
         private static MainForm FormInstance;
-        internal static IniData IniData;
+        internal static DataMapping IniData;
 
         /// <summary>
         /// The main entry point for the application.

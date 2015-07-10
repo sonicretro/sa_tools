@@ -8,6 +8,7 @@ using System.Text;
 using System.Windows.Forms;
 using SA_Tools;
 using SonicRetro.SAModel;
+using ModManagement;
 
 namespace ModGenerator
 {
@@ -56,7 +57,7 @@ namespace ModGenerator
             InitializeComponent();
         }
 
-        IniData IniData;
+        DataMapping IniData;
         string gameFolder;
         string projectName;
 		string projectFolder;
@@ -113,7 +114,7 @@ namespace ModGenerator
 
         private void LoadINI(string filename)
         {
-            IniData = IniSerializer.Deserialize<IniData>(filename);
+            IniData = IniSerializer.Deserialize<DataMapping>(filename);
 
             Environment.CurrentDirectory = Path.GetDirectoryName(filename);
 
@@ -904,58 +905,22 @@ namespace ModGenerator
             }
 		}
 
-		private void CopyDirectory(DirectoryInfo src, string dst)
-		{
-			if (!Directory.Exists(dst))
-				Directory.CreateDirectory(dst);
-			foreach (DirectoryInfo dir in src.GetDirectories())
-				CopyDirectory(dir, Path.Combine(dst, dir.Name));
-			foreach (System.IO.FileInfo fil in src.GetFiles())
-				fil.CopyTo(Path.Combine(dst, fil.Name), true);
-		}
-
 		private void INIExport_Click(object sender, EventArgs e)
 		{
             string destinationFolder = Path.Combine(Path.Combine(gameFolder, "mods"), projectName);
 
             #region Generate our EXEData ini file
-            IniData output = new IniData();
-			output.Files = new Dictionary<string, SA_Tools.FileInfo>();
-			foreach (KeyValuePair<string, SA_Tools.FileInfo> item in IniData.Files.Where((a, i) => listView1.CheckedIndices.Contains(i)))
+			// get our list of strings from the listview box
+			List<string> files = new List<string>();
+			foreach(ListViewItem item in listView1.Items)
 			{
-                Environment.CurrentDirectory = projectFolder;
-				string projectRelativeFileLocation = item.Value.Filename; // getting project-relative location (full path)
-
-				if (Directory.Exists(projectRelativeFileLocation)) // this is actually trying to check and see if the item in question is a directory
-					Directory.CreateDirectory(Path.Combine(destinationFolder, projectRelativeFileLocation)); // this won't work at all, since you can't combine two absolute paths
-				else // this is how we know it is NOT a directory. But we'll need to turn it into one before we can drop our file into it.
-					Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(destinationFolder, projectRelativeFileLocation)));
-
-				switch (item.Value.Type)
-				{
-					case "deathzone":
-						DeathZoneFlags[] list = DeathZoneFlagsList.Load(projectRelativeFileLocation);
-						string path = Path.GetDirectoryName(projectRelativeFileLocation);
-						for (int j = 0; j < list.Length; j++)
-						{
-							System.IO.FileInfo file = new System.IO.FileInfo(Path.Combine(path, j.ToString(NumberFormatInfo.InvariantInfo) + ".sa1mdl")); // todo: this extension isn't getting copied correctly
-							file.CopyTo(Path.Combine(Path.Combine(destinationFolder, path), j.ToString(NumberFormatInfo.InvariantInfo)), true);
-						}
-						File.Copy(projectRelativeFileLocation, Path.Combine(destinationFolder, projectRelativeFileLocation), true);
-						break;
-					default:
-						if (Directory.Exists(projectRelativeFileLocation))
-							CopyDirectory(new DirectoryInfo(projectRelativeFileLocation), Path.Combine(destinationFolder, projectRelativeFileLocation));
-						else
-							File.Copy(projectRelativeFileLocation, Path.Combine(destinationFolder, projectRelativeFileLocation), true);
-						break;
-				}
-				item.Value.MD5Hash = null;
-				output.Files.Add(item.Key, item.Value);
+				if (item.Checked) files.Add(item.Text);
 			}
 
+			DataMapping output = ModManagement.ModManagement.ExeDataINIFromList(files, projectFolder, destinationFolder, IniData);
+
 			IniSerializer.Serialize(output, Path.Combine(destinationFolder, "exeData.ini")); // todo: put a copy of this in the project folder so that sadxlvl2 knows what to copy
-                                                                                            // for it's built-in 'test/play' feature
+                                                                                            // for it's built-in 'test/play' feature*/
             #endregion
 
             #region Add EXEData to mod.ini & copy to mod folder

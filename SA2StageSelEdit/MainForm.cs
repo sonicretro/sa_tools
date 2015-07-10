@@ -50,7 +50,7 @@ namespace SA2StageSelEdit
 			using (OpenFileDialog fd = new OpenFileDialog() { DefaultExt = "ini", Filter = "INI Files|*.ini" })
 				if (fd.ShowDialog(this) == DialogResult.OK)
 				{
-					IniData ini = IniSerializer.Deserialize<IniData>(fd.FileName);
+					DataMapping ini = IniSerializer.Deserialize<DataMapping>(fd.FileName);
 					filename = Path.Combine(Path.GetDirectoryName(fd.FileName),
 						ini.Files.First((item) => item.Value.Type == "stageselectlist").Value.Filename);
 					levels = new List<StageSelectLevel>(StageSelectLevelList.Load(filename));
