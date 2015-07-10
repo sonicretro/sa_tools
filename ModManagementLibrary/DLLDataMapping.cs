@@ -6,36 +6,40 @@ using System.IO;
 using System.Text;
 using SA_Tools;
 
-namespace ModGenerator
+namespace ModManagement
 {
-    public class DLLIniData
-    {
-        [IniName("game")]
-        [DefaultValue(Game.SADX)]
-        public Game Game { get; set; }
+	/// <summary>
+	/// Sister class to 'DataMapping', this is basically the same concept but for DLL files as opposed to exe files (like sonic.exe). Examples include Chrmodels.dll, adventure fields
+	/// and others.
+	/// </summary>
+	public class DLLDataMapping
+	{
+		[IniName("game")]
+		[DefaultValue(Game.SADX)]
+		public Game Game { get; set; }
 		[IniName("modulename")]
 		public string ModuleName { get; set; }
-        [IniCollection(IniCollectionMode.IndexOnly)]
-        public Dictionary<string, DLLFileInfo> Files { get; set; }
-    }
+		[IniCollection(IniCollectionMode.IndexOnly)]
+		public Dictionary<string, DLLFileInfo> Files { get; set; }
+	}
 
-    /*public enum Game
-    {
-        SA1,
-        SADX,
-        SA2,
-        SA2B
-    }*/
+	/*public enum Game
+	{
+		SA1,
+		SADX,
+		SA2,
+		SA2B
+	}*/
 
-    public class DLLFileInfo
-    {
-        [IniName("type")]
-        public string Type { get; set; }
+	public class DLLFileInfo
+	{
+		[IniName("type")]
+		public string Type { get; set; }
 		[IniName("length")]
 		public int Length { get; set; }
-        [IniName("filename")]
-        public string Filename { get; set; }
-    }
+		[IniName("filename")]
+		public string Filename { get; set; }
+	}
 
 	public class DllIniData
 	{

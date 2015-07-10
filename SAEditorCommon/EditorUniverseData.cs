@@ -4,11 +4,15 @@ using SA_Tools;
 
 namespace SonicRetro.SAModel.SAEditorCommon
 {
-	public class IniData
+	/// <summary>
+	/// Formerly known as 'IniData'. This class stores everything the editor needs to know about the game's 'universe', such as where all of the levels are stored,
+	/// where the character models are, texture lists, etc.
+	/// </summary>
+	public class EditorUniverseData
 	{
-		public static IniData Load(string filename)
+		public static EditorUniverseData Load(string filename)
 		{
-			return IniSerializer.Deserialize<IniData>(filename);
+			return IniSerializer.Deserialize<EditorUniverseData>(filename);
 		}
 
 		public void Save(string filename)
@@ -25,12 +29,12 @@ namespace SonicRetro.SAModel.SAEditorCommon
 		public string Paths { get; set; }
 		[IniName("Chars_")]
 		[IniCollection(IniCollectionMode.NoSquareBrackets)]
-		public Dictionary<string, IniCharInfo> Characters { get; set; }
+		public Dictionary<string, EditorCharacterInfo> Characters { get; set; }
 		[IniCollection(IniCollectionMode.IndexOnly)]
-		public Dictionary<string, IniLevelData> Levels { get; set; }
+		public Dictionary<string, EditorLevelData> Levels { get; set; }
 	}
 
-	public class IniCharInfo
+	public class EditorCharacterInfo
 	{
 		public string Model { get; set; }
 		public string Textures { get; set; }
@@ -39,7 +43,7 @@ namespace SonicRetro.SAModel.SAEditorCommon
 		public string StartPositions { get; set; }
 	}
 
-	public class IniLevelData
+	public class EditorLevelData
 	{
 		public string LevelGeometry { get; set; }
 		[DefaultValue("0000")]
