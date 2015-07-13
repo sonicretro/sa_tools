@@ -1,6 +1,7 @@
 ﻿using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
+using System.Linq;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Drawing;
@@ -42,18 +43,23 @@ namespace SonicRetro.SAModel.SADXLVL2
 		}
 
 		internal Device d3ddevice;
-		SAEditorCommon.EditorUniverseData ini;
+		/// <summary>This is sadxlvl.ini. It stores the list of levels, where their files are, etc.</summary>
+		EditorUniverseData ini;
 		EditorCamera cam = new EditorCamera(EditorOptions.RenderDrawDistance);
 		UI.EditorDataViewer dataViewer;
 
 		// level data related variables
 		string levelID;
+		SA1LevelAct levelact;
 		internal string levelName;
 		bool isStageLoaded;
-		List<string> exeDataChangedFiles; // all of the sonic.exe files we've modified during this session
-										  // We'll need to change this to accomodate dll files later
-		SA_Tools.DataMapping sonicExeINIData; // our original sonic.exe datamapping, md5's and all. 
-		
+		/// <summary>Any file we've changed during the session goes here. Useful for playtest mod building.</summary>
+		List<string> changedFiles = new List<string>();
+		/// <summary>our original sonic.exe datamapping, md5's and all.</summary>
+		DataMapping sonicExeDataMapping;
+		/// <summary>Data mappings for all of sadx's system dlls like chrmodels.</summary>
+		ModManagement.DLLDataMapping[] sadxDLLMappings;
+
 		EditorItemSelection selectedItems = new EditorItemSelection();
 		Dictionary<string, List<string>> levelNames;
 		bool lookKeyDown;
@@ -83,7 +89,8 @@ namespace SonicRetro.SAModel.SADXLVL2
 			dataViewer = new UI.EditorDataViewer(this);
 #endif
 
-            string errorMessage = "None supplied";
+			#region Settings Check / Recent Project Loading
+			string errorMessage = "None supplied";
             DialogResult lookForNewPath = System.Windows.Forms.DialogResult.None;
             if (Properties.Settings.Default.GamePath == "" || (!ProjectSelector.VerifyGamePath(SA_Tools.Game.SADX, Properties.Settings.Default.GamePath, out errorMessage)))
             {
@@ -105,8 +112,8 @@ namespace SonicRetro.SAModel.SADXLVL2
 
             SAEditorCommon.EditorOptions.GamePath = Properties.Settings.Default.GamePath;
 
-            // todo: implement a 'recent project' storage variable in the settings, then try loading it here.
-            if(Settings.RecentProject != "")
+			#region Recent Project Loading
+			if (Settings.RecentProject != "")
             {
                 string projectINIFile = string.Concat(Settings.GamePath, "\\projects\\", Settings.RecentProject, "\\sadxlvl.ini");
                 if(File.Exists(projectINIFile))
@@ -121,10 +128,12 @@ namespace SonicRetro.SAModel.SADXLVL2
                 {
                     Properties.Settings.Default.RecentProject = "";
                 }
-            }
+			}
+			#endregion
 
-            Properties.Settings.Default.Save();
+			Properties.Settings.Default.Save();
             Settings = Properties.Settings.Default;
+			#endregion
 		}
 
         void LoadProject_Shown(object sender, EventArgs e)
@@ -266,6 +275,16 @@ namespace SonicRetro.SAModel.SADXLVL2
             Properties.Settings.Default.RecentProject = SAEditorCommon.EditorOptions.ProjectName;
             Properties.Settings.Default.Save();
             Settings = Properties.Settings.Default;
+
+			// load our data mappings - these don't change so we can load them at startup.
+			sonicExeDataMapping = IniSerializer.Deserialize<DataMapping>(string.Concat(SAEditorCommon.EditorOptions.ProjectPath, "\\DataMappings\\sonic_data.ini"));
+
+			sadxDLLMappings = new ModManagement.DLLDataMapping[ModManagement.ModManagement.SADXSystemDLLFiles.Length];
+			for (int i = 0; i < ModManagement.ModManagement.SADXSystemDLLFiles.Length; i++)
+			{
+				sadxDLLMappings[i] = IniSerializer.Deserialize<ModManagement.DLLDataMapping>(
+					string.Concat(SAEditorCommon.EditorOptions.ProjectPath, string.Format("\\DataMappings\\{0}_data.ini", ModManagement.ModManagement.SADXSystemDLLFiles[i])));
+			}
 		}
 
 		private void PopulateLevelMenu(ToolStripMenuItem targetMenu, Dictionary<string, List<string>> levels)
@@ -510,7 +529,8 @@ namespace SonicRetro.SAModel.SADXLVL2
                     string sysFallbackPath = Path.Combine(SAEditorCommon.EditorOptions.GamePath, ini.SystemPath);
                     string syspath = Path.Combine(SAEditorCommon.EditorOptions.ProjectPath, ini.SystemPath);
 
-					SA1LevelAct levelact = new SA1LevelAct(level.LevelID);
+					levelact = new SA1LevelAct(level.LevelID);
+					playtestStartInfo.LevelAct = levelact;
 					LevelData.leveltexs = null;
 					cam = new EditorCamera(EditorOptions.RenderDrawDistance);
 
@@ -523,6 +543,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 						progress.StepProgress();
 					}
 
+					#region Geometry Loading
 					progress.SetTaskAndStep("Loading level data:", "Geometry");
 
 					if (string.IsNullOrEmpty(level.LevelGeometry))
@@ -536,6 +557,9 @@ namespace SonicRetro.SAModel.SADXLVL2
 					}
 
 					progress.StepProgress();
+					#endregion
+
+					#region Texture Loading
 					progress.SetStep("Textures");
 
 					LevelData.TextureBitmaps = new Dictionary<string, BMPInfo[]>();
@@ -567,6 +591,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 					}
 
 					progress.StepProgress();
+					#endregion
 
 					#region Start Positions
 
@@ -1258,16 +1283,20 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 			SA1LevelAct levelact = new SA1LevelAct(level.LevelID);
 
+			#region Saving Geometry
 			progress.SetTaskAndStep("Saving:", "Geometry...");
 
 			if (LevelData.geo != null)
 			{
 				LevelData.geo.Tool = "SADXLVL2";
 				LevelData.geo.SaveToFile(level.LevelGeometry, LandTableFormat.SA1);
+				changedFiles.Add(level.LevelGeometry);
 			}
 
 			progress.StepProgress();
+			#endregion
 
+			#region Saving Start Positions
 			progress.Step = "Start positions...";
 			Application.DoEvents();
 
@@ -1290,10 +1319,13 @@ namespace SonicRetro.SAModel.SADXLVL2
 						});
 				}
 				posini.Save(ini.Characters[LevelData.Characters[i]].StartPositions);
+				changedFiles.Add(ini.Characters[LevelData.Characters[i]].StartPositions);
 			}
 
 			progress.StepProgress();
+			#endregion
 
+			#region Saving Death Zones
 			progress.Step = "Death zones...";
 			Application.DoEvents();
 
@@ -1304,9 +1336,11 @@ namespace SonicRetro.SAModel.SADXLVL2
 				for (int i = 0; i < LevelData.DeathZones.Count; i++)
 					dzini[i] = LevelData.DeathZones[i].Save(path, i);
 				dzini.Save(level.DeathZones);
+				changedFiles.Add(level.DeathZones);
 			}
 
 			progress.StepProgress();
+			#endregion
 
 			#region Saving SET Items
 
@@ -1336,6 +1370,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 						file.AddRange(item.GetBytes());
 
 					File.WriteAllBytes(setstr, file.ToArray());
+					changedFiles.Add(setstr);
 				}
 			}
 
@@ -1370,6 +1405,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 						file.AddRange(item.GetBytes());
 
 					File.WriteAllBytes(camString, file.ToArray());
+					changedFiles.Add(camString);
 				}
 			}
 
@@ -1378,14 +1414,46 @@ namespace SonicRetro.SAModel.SADXLVL2
 			Application.DoEvents();
 
 			#endregion
-		}
 
+			#region Saving Splines
+
+			progress.Step = "Splines...";
+			Application.DoEvents();
+
+			if(LevelData.LevelSplines != null)
+			{
+				String splineDirectory = Path.Combine(Path.Combine(EditorOptions.ProjectPath, ini.Paths),
+					levelact.ToString());
+
+				if (Directory.Exists(splineDirectory)) // might want to add some kind of error reporting to this save system, btw
+				{
+					for(int i=0; i < LevelData.LevelSplines.Count; i++)
+					{
+						string splineOutput = Path.Combine(splineDirectory, string.Format("{0}.ini", i));
+						LevelData.LevelSplines[i].Save(splineOutput);
+						changedFiles.Add(splineOutput);
+					}
+				}
+			}
+
+			#endregion
+
+			CopyUpdatedModFiles(); // update our mod build!
+		}
 
 		private void exitToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			Close();
 		}
 
+		private void UpdateTitlebar()
+		{
+			Text = "SADXLVL2 - " + levelName + " (" + cam.Position.X + ", " + cam.Position.Y + ", " + cam.Position.Z
+				+ " Pitch=" + cam.Pitch.ToString("X") + " Yaw=" + cam.Yaw.ToString("X")
+				+ " Speed=" + cam.MoveSpeed + (cam.mode == 1 ? " Distance=" + cam.Distance : "") + ")";
+		}
+
+		#region Rendering
 		internal void DrawLevel()
 		{
 			if (!isStageLoaded)
@@ -1499,17 +1567,11 @@ namespace SonicRetro.SAModel.SADXLVL2
 			d3ddevice.Present();
 		}
 
-		private void UpdateTitlebar()
-		{
-			Text = "SADXLVL2 - " + levelName + " (" + cam.Position.X + ", " + cam.Position.Y + ", " + cam.Position.Z
-				+ " Pitch=" + cam.Pitch.ToString("X") + " Yaw=" + cam.Yaw.ToString("X")
-				+ " Speed=" + cam.MoveSpeed + (cam.mode == 1 ? " Distance=" + cam.Distance : "") + ")";
-		}
-
 		private void panel1_Paint(object sender, PaintEventArgs e)
 		{
 			DrawLevel();
 		}
+		#endregion
 
 		#region User Keyboard / Mouse Methods
 		private void panel1_MouseDown(object sender, MouseEventArgs e)
@@ -2628,21 +2690,122 @@ namespace SonicRetro.SAModel.SADXLVL2
 			}
 		}
 
-        private void playTestButton_Click(object sender, EventArgs e)
+		#region Playtest and Mod Management Methods
+		private void playTestButton_Click(object sender, EventArgs e)
         {
             PlayTestLevel();
         }
 
+		// todo: consider moving this to a build class. First think about how much other functionality might go into said build class, to ensure there's enough
+		// to be worth making a new class for.
+		private void CopyUpdatedModFiles()
+		{
+			// load the user's EXEData - we do have to get this and the user's DLLData files every time this is called, simply because 
+			// they might have changed since last time.
+			string exeDataInipath = Path.Combine(Settings.GamePath, string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\exeData.ini"));
+			DataMapping modExeDataMapping = IniSerializer.Deserialize<DataMapping>(exeDataInipath);
+
+			// load the user's DLLData files
+			bool[] writeDLLs = new bool[ModManagement.ModManagement.SADXSystemDLLFiles.Length]; for (int i = 0; i < writeDLLs.Length; i++) writeDLLs[i] = false;
+			ModManagement.DLLDataMapping[] dllDataMappings = new ModManagement.DLLDataMapping[ModManagement.ModManagement.SADXSystemDLLFiles.Length];
+			for (int i = 0; i < ModManagement.ModManagement.SADXSystemDLLFiles.Length; i++)
+			{
+				dllDataMappings[i] = IniSerializer.Deserialize<ModManagement.DLLDataMapping>(
+					Path.Combine(Settings.GamePath, string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\", 
+					ModManagement.ModManagement.SADXSystemDLLFiles[i], "Data.ini")));
+			}
+
+			foreach (string file in changedFiles)
+			{
+				#region Type Identification
+				ModManagement.ModManagement.DataSource fileDataSource = ModManagement.ModManagement.DataSource.EXEData; // this is our default option
+				string dllOutput = "";
+				string[] splitPath = file.Split('/');
+
+				if (splitPath[0].ToLowerInvariant() == "system".ToLowerInvariant()) fileDataSource = ModManagement.ModManagement.DataSource.Loose;
+				else
+				{
+					foreach (string dllFile in ModManagement.ModManagement.SADXSystemDLLFiles)
+					{
+						if (dllFile.ToLowerInvariant() == splitPath[0].ToLowerInvariant())
+						{
+							fileDataSource = ModManagement.ModManagement.DataSource.DllData;
+							dllOutput = dllFile;
+							break;
+						}
+					}
+				}
+				#endregion
+
+				// we're going to check to see if our modloader ini files contain entries for the files.
+				// the user is going to expect them to load, and if they aren't part of these files, they won't load, so we'll need to fix that before it happens.
+				if (fileDataSource == ModManagement.ModManagement.DataSource.EXEData)
+				{
+					bool fileExists = false;
+
+					foreach (KeyValuePair<string, SA_Tools.FileInfo> item in modExeDataMapping.Files)
+					{
+						if (item.Value.Filename == file)
+						{
+							fileExists = true;
+							break;
+						}
+					}
+
+					// fileExists will be false, there's actually no need to check it but I'm going to be pedantic here
+					if(!fileExists)
+					{
+						// our file is not contained within the data mapping file, we'll need to include it.
+						foreach (KeyValuePair<string, SA_Tools.FileInfo> item in sonicExeDataMapping.Files.Where((a, i) => a.Value.Filename == file))
+						{
+							modExeDataMapping.Files.Add(item.Key, item.Value);
+						}
+					}
+				}
+				else if (fileDataSource == ModManagement.ModManagement.DataSource.DllData)
+				{
+					// we need to find out which dll file our file belongs to
+					for (int i = 0; i < ModManagement.ModManagement.SADXSystemDLLFiles.Length; i++)
+					{
+						foreach(KeyValuePair<string, ModManagement.DLLFileInfo> item in dllDataMappings[i].Files)
+						{
+							if(item.Value.Filename == file)
+							{
+								dllOutput = ModManagement.ModManagement.SADXSystemDLLFiles[i];
+								// todo: you need to fix the relative/absolute path problems inside of split's DLL functionality before this can be fixed!
+							}
+						}
+					}
+				}
+
+				// TODO: check to see if the project folder's version of the file is newer than the mod folder's version. If they're the same date, then the file
+				// TODO: is unchanged and we don't need to copy it.
+			}
+		}
+
         private void PlayTestLevel()
         {
-            // Go through all of the data INI files in the mod.ini
-            // within each one, look at each file listed. Compare the project and mod versions. If the project version is different, overwrite the mod version with it.
+			SaveStage(true);
 
-            // save spawn data somewhere where modloader can pick up on it
+            // save start info data so that it can be forwarded to modloader
+			SA1StartPosInfo spawnPoint = new SA1StartPosInfo() { Position = LevelData.StartPositions[LevelData.Character].Position, YRotation = LevelData.StartPositions[LevelData.Character].Rotation.Y };
+			SAEditorCommon.Playtest.StartInfo playtestStartInfo = new SonicRetro.SAModel.SAEditorCommon.Playtest.StartInfo(levelact, spawnPoint, false, (SA1Characters)LevelData.Character);
+			string startInfoPath = string.Concat(SAEditorCommon.EditorOptions.GamePath, "\\Mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\StartData.ini");
+			IniSerializer.Serialize(playtestStartInfo, startInfoPath);
 
-            // set the current mod to this one
+            // TODO: set the current mod to this one
 
-            // start sonic.exe with the -testspawn flag
+            // set sonic.exe to start with the -testspawn flag
+			string sonicExePath = Path.Combine(Settings.GamePath, "sonic.exe");
+			if (File.Exists(sonicExePath))
+			{
+				System.Diagnostics.Process sonicProcess = System.Diagnostics.Process.Start(sonicExePath, "-testspawn");
+			}
+			else
+			{
+				MessageBox.Show("Couldn't start game, sonic.exe not found.");
+			}
         }
+		#endregion
 	}
 }

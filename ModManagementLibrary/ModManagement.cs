@@ -61,5 +61,19 @@ namespace ModManagement
 			foreach (System.IO.FileInfo fil in src.GetFiles())
 				fil.CopyTo(Path.Combine(dst, fil.Name), true);
 		}
+
+		/// <summary>Specifies which ModLoader category a file belongs to.</summary>
+		public enum DataSource 
+		{
+			/// <summary>File belongs to EXEData.</summary>
+			EXEData,
+			/// <summary>File belongs to DLLData.</summary>
+			DllData,
+			/// <summary>File doesn't belong to any data category, and doesn't need an ini entry.</summary>
+			Loose
+		}
+
+		public static string[] SADXSystemDLLFiles = { "ADV00MODELS", "ADV01CMODELS", "ADV01MODELS", "ADV02MODELS", "ADV03MODELS", "BOSSCHAOS0MODELS", "CHAOSTGGARDEN02MR_DAYTIME",
+													  "CHAOSTGGARDEN02MR_EVENING", "CHAOSTGGARDEN02MR_NIGHT", "CHRMODELS_orig" };
 	}
 }

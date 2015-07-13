@@ -104,6 +104,8 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 		}
 		#endregion
 
+		// todo: refactor the below into a general 'mesh sweep' method that can be used in any context - it could be useful for displaying things later like 
+		// playthrough data, or assist paths on items like rockets, dash hoops and springs.
 		public void RebuildMesh(Device device)
 		{
 			List<CustomVertex.PositionColored> vertList = new List<CustomVertex.PositionColored>();
@@ -255,7 +257,12 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 			CalcDistance(splineData.Path.Count - 1);
 		}
 
-		// override implementations go here!
+		public void Save(string filePath)
+		{
+			splineData.Save(filePath);
+		}
+
+		#region Item class Overrides
 		public override HitResult CheckHit(Vector3 Near, Vector3 Far, Viewport Viewport, Matrix Projection, Matrix View)
 		{
 			MatrixStack transform = new MatrixStack();
@@ -342,9 +349,13 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 
 		public override void Paste()
 		{
+			// TODO: implement the following once the Positional translations are implemented.
 			throw new NotImplementedException();
 		}
 
+		// todo: the below could possibly be implemented, if we can get delta information from the position (possibly store an old one?)
+		// that way we could turn the delta information into a positional translation, which we apply to the entire spline.
+		// This will be tricky but it isn't impossible. The same principle could be applied to the rotation below.
 		[Browsable(false)]
 		public override Vertex Position
 		{
@@ -358,6 +369,7 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 			}
 		}
 
+		[Browsable(false)]
 		public override Rotation Rotation
 		{
 			get
@@ -369,7 +381,9 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 				throw new NotSupportedException();
 			}
 		}
+		#endregion
 
+		#region Event Methods
 		void selectionManager_SelectionChanged(EditorItemSelection sender)
 		{
 			if (sender.ItemCount != 1)
@@ -392,5 +406,6 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 				RebuildMesh(EditorOptions.Direct3DDevice);
 			}
 		}
+		#endregion
 	}
 }

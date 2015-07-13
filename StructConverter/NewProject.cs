@@ -27,11 +27,7 @@ namespace ModGenerator
 
 		// sadx split options
 		private bool splitSonicExe = true;
-		private KeyValuePair<string, bool>[] sadxSplitDLLFiles = { new KeyValuePair<string, bool>("ADV00MODELS", true), new KeyValuePair<string, bool>("ADV01CMODELS", true),
-                                                                 new KeyValuePair<string, bool>("ADV01MODELS", true), new KeyValuePair<string, bool>("ADV02MODELS", true),
-                                                                 new KeyValuePair<string, bool>("ADV03MODELS", true), new KeyValuePair<string, bool>("BOSSCHAOS0MODELS", true),
-                                                                 new KeyValuePair<string, bool>("CHAOSTGGARDEN02MR_DAYTIME", true), new KeyValuePair<string, bool>("CHAOSTGGARDEN02MR_EVENING", true),
-                                                                 new KeyValuePair<string, bool>("CHAOSTGGARDEN02MR_NIGHT", true), new KeyValuePair<string, bool>("CHRMODELS", true)};
+		private KeyValuePair<string, bool>[] sadxSplitDLLFiles;
 
 		public bool SplitSonicExe { get { return splitSonicExe; } set { splitSonicExe = value; } }
 		public KeyValuePair<string, bool>[] SadxSplitDLLFiles { get { return sadxSplitDLLFiles; } set { sadxSplitDLLFiles = value; } }
@@ -47,6 +43,13 @@ namespace ModGenerator
 			ToolTip gamePathTip = new ToolTip();
 			gamePathTip.SetToolTip(gamePathTextBox, "The game's root folder goes here. It should have the executable file (eg: sonic.exe). The Projects and Mods folders should be within this folder. If the Projects folder does not exist, it will be created.");
 			gamePathTip.SetToolTip(browseButton, "The game's root folder goes here. It should have the executable file (eg: sonic.exe). The Projects and Mods folders should be within this folder. If the Projects folder does not exist, it will be created.");
+
+			sadxSplitDLLFiles = new KeyValuePair<string, bool>[ModManagement.ModManagement.SADXSystemDLLFiles.Length];
+			for(int i=0; i < ModManagement.ModManagement.SADXSystemDLLFiles.Length; i++)
+			{
+				KeyValuePair<string, bool> newDllEntry = new KeyValuePair<string, bool>(ModManagement.ModManagement.SADXSystemDLLFiles[i], true);
+				sadxSplitDLLFiles[i] = newDllEntry;
+			}
 		}
 
 		private void cancelButton_Click(object sender, EventArgs e)
@@ -190,17 +193,6 @@ namespace ModGenerator
 							{
 								args[0] = string.Concat(gamePathTextBox.Text, "\\system\\", file.Key, ".DLL"); // our dll file to split
 								args[1] = string.Concat(gamePathTextBox.Text, "\\SplitConfig\\", file.Key.ToLower(), ".ini"); // our ini file data mapping
-
-								// Don't unpack the modloader's chrmodels.dll
-								if (file.Key == "CHRMODELS")
-								{
-									long chrSize = new FileInfo(args[0]).Length;
-
-									if (chrSize == 819200) // we've found modloader's dll, change it.
-									{
-										args[0] = string.Concat(gamePathTextBox.Text, "\\system\\", "CHRMODELS_orig", ".DLL"); // our dll file to split
-									}
-								}
 
 								splitBackgroundWorker.ReportProgress((90 - 25 / sadxSplitDLLFiles.Length) + 25, string.Format("Splitting {0}.DLL", file.Key)); // our calculation for this is giving invalid values    
 								// greater than 100. Do the math out, then fix this.

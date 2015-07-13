@@ -40,7 +40,7 @@
     <Compile Include="EndianReader.cs" />
     <Compile Include="EndianWriter.cs" />
     <Compile Include="HelperFunctions.cs" />
-    <Compile Include="IniData.cs" />
+    <Compile Include="DataMapping.cs" />
     <Compile Include="IniFile.cs" />
     <Compile Include="IniSerializer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

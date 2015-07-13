@@ -42,7 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DLLIniData.cs" />
+    <Compile Include="DLLDataMapping.cs" />
     <Compile Include="ModManagement.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Split.cs" />
