@@ -27,8 +27,6 @@ namespace SonicRetro.SAModel.SADXLVL2
 	// (Example: sETItemsToolStripMenuItem1 is a dropdown menu. sETITemsToolStripMenuItem is a toggle.)
 	public partial class MainForm : Form
 	{
-		Properties.Settings Settings = Properties.Settings.Default;
-
 		public MainForm()
 		{
 			Application.ThreadException += Application_ThreadException;
@@ -43,12 +41,16 @@ namespace SonicRetro.SAModel.SADXLVL2
 		}
 
 		internal Device d3ddevice;
+
+		#region Editor-Specific variables
 		/// <summary>This is sadxlvl.ini. It stores the list of levels, where their files are, etc.</summary>
 		EditorUniverseData ini;
 		EditorCamera cam = new EditorCamera(EditorOptions.RenderDrawDistance);
+		EditorItemSelection selectedItems = new EditorItemSelection();
 		UI.EditorDataViewer dataViewer;
+		#endregion
 
-		// level data related variables
+		#region Level and Project Variables
 		string levelID;
 		SA1LevelAct levelact;
 		internal string levelName;
@@ -59,21 +61,24 @@ namespace SonicRetro.SAModel.SADXLVL2
 		DataMapping sonicExeDataMapping;
 		/// <summary>Data mappings for all of sadx's system dlls like chrmodels.</summary>
 		ModManagement.DLLDataMapping[] sadxDLLMappings;
-
-		EditorItemSelection selectedItems = new EditorItemSelection();
 		Dictionary<string, List<string>> levelNames;
+		// light list
+		List<SA1StageLightData> stageLightList;
+		#endregion
+
+		#region Controls / Settings
+		Properties.Settings Settings = Properties.Settings.Default;
+
 		bool lookKeyDown;
 		bool zoomKeyDown;
 
 		// TODO: Make these both configurable.
 		bool mouseWrapScreen = false;
 		ushort mouseWrapThreshold = 2;
+		#endregion
 
 		// helpers / ui stuff
 		TransformGizmo transformGizmo;
-
-		// light list
-		List<SA1StageLightData> stageLightList;
 
 		private void MainForm_Load(object sender, EventArgs e)
 		{
@@ -329,6 +334,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			}
 		}
 
+		#region Common Menu Functions (Mass checkbox editing, etc.)
 		// TODO: Move this stuff somewhere that it can be accessed by all projects
 		
 		/// <summary>
@@ -415,6 +421,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 			return result;
 		}
+		#endregion
 
 		private void LevelToolStripMenuItem_Clicked(object sender, EventArgs e)
 		{
@@ -530,7 +537,7 @@ namespace SonicRetro.SAModel.SADXLVL2
                     string syspath = Path.Combine(SAEditorCommon.EditorOptions.ProjectPath, ini.SystemPath);
 
 					levelact = new SA1LevelAct(level.LevelID);
-					playtestStartInfo.LevelAct = levelact;
+					//playtestStartInfo.LevelAct = levelact;
 					LevelData.leveltexs = null;
 					cam = new EditorCamera(EditorOptions.RenderDrawDistance);
 
@@ -1437,6 +1444,8 @@ namespace SonicRetro.SAModel.SADXLVL2
 			}
 
 			#endregion
+
+			// todo : save stage lights here
 
 			CopyUpdatedModFiles(); // update our mod build!
 		}
@@ -2794,6 +2803,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			IniSerializer.Serialize(playtestStartInfo, startInfoPath);
 
             // TODO: set the current mod to this one
+
 
             // set sonic.exe to start with the -testspawn flag
 			string sonicExePath = Path.Combine(Settings.GamePath, "sonic.exe");
