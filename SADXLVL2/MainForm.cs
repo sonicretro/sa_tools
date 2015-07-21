@@ -48,6 +48,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 		EditorCamera cam = new EditorCamera(EditorOptions.RenderDrawDistance);
 		EditorItemSelection selectedItems = new EditorItemSelection();
 		UI.EditorDataViewer dataViewer;
+		StreamWriter editorLogStream;
 		#endregion
 
 		#region Level and Project Variables
@@ -85,6 +86,9 @@ namespace SonicRetro.SAModel.SADXLVL2
 			SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.Opaque, true);
 			LevelData.StateChanged += LevelData_StateChanged;
 			panel1.MouseWheel += panel1_MouseWheel;
+
+			// setting up our log file
+			editorLogStream = new StreamWriter(Application.StartupPath + "SADXLVL2.log");
 
 #if DEBUG
 			ToolStripMenuItem editorDebugItem = new ToolStripMenuItem("Editor Memory");
@@ -435,6 +439,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			}
 		}
 
+		#region Loading Methods
 		private void LoadStage(string id)
 		{
 			UseWaitCursor = true;
@@ -1253,6 +1258,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			toolStrip1.Enabled = isStageLoaded;
 			LevelData_StateChanged();
 		}
+		#endregion
 
 		private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
 		{
@@ -2089,6 +2095,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			propertyGrid1.Refresh();
 		}
 
+		#region UI Event Methods
 		private void cutToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			List<Item> selitems = new List<Item>();
@@ -2452,14 +2459,6 @@ namespace SonicRetro.SAModel.SADXLVL2
 				dlg.ShowDialog(this);
 		}
 
-		void LevelData_StateChanged()
-		{
-			if (transformGizmo != null)
-				transformGizmo.AffectedItems = selectedItems.GetSelection();
-
-			DrawLevel();
-		}
-
 		private void statsToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			MessageBox.Show(LevelData.GetStats());
@@ -2506,76 +2505,6 @@ namespace SonicRetro.SAModel.SADXLVL2
 			optionsEditor.FormUpdated += optionsEditor_FormUpdated;
 			optionsEditor.Show();
 		}
-
-		void optionsEditor_FormUpdated()
-		{
-			DrawLevel();
-		}
-
-		#region Gizmo Button Event Methods
-		private void selectModeButton_Click(object sender, EventArgs e)
-		{
-			if (transformGizmo != null)
-			{
-				transformGizmo.Mode = TransformMode.NONE;
-				gizmoSpaceComboBox.Enabled = true;
-				moveModeButton.Checked = false;
-				rotateModeButton.Checked = false;
-				DrawLevel(); // TODO: possibly find a better way of doing this than re-drawing the entire scene? Possibly keep a copy of the last render w/o gizmo in memory?
-			}
-		}
-
-		private void moveModeButton_Click(object sender, EventArgs e)
-		{
-			if (transformGizmo != null)
-			{
-				transformGizmo.Mode = TransformMode.TRANFORM_MOVE;
-				gizmoSpaceComboBox.Enabled = true;
-				selectModeButton.Checked = false;
-				rotateModeButton.Checked = false;
-				scaleModeButton.Checked = false;
-				DrawLevel();
-			}
-		}
-
-		private void rotateModeButton_Click(object sender, EventArgs e)
-		{
-			if (transformGizmo != null)
-			{
-				transformGizmo.Mode = TransformMode.TRANSFORM_ROTATE;
-				transformGizmo.LocalTransform = true;
-				gizmoSpaceComboBox.SelectedIndex = 1;
-				gizmoSpaceComboBox.Enabled = false;
-				selectModeButton.Checked = false;
-				moveModeButton.Checked = false;
-				scaleModeButton.Checked = false;
-				DrawLevel();
-			}
-		}
-
-		private void gizmoSpaceComboBox_DropDownClosed(object sender, EventArgs e)
-		{
-			if (transformGizmo != null)
-			{
-				transformGizmo.LocalTransform = (gizmoSpaceComboBox.SelectedIndex != 0);
-				DrawLevel();
-			}
-		}
-
-		private void scaleModeButton_Click(object sender, EventArgs e)
-		{
-			if (transformGizmo != null)
-			{
-				transformGizmo.Mode = TransformMode.TRANSFORM_SCALE;
-				transformGizmo.LocalTransform = true;
-				gizmoSpaceComboBox.SelectedIndex = 1;
-				gizmoSpaceComboBox.Enabled = false;
-				selectModeButton.Checked = false;
-				moveModeButton.Checked = false;
-				DrawLevel();
-			}
-		}
-		#endregion
 
 		private void duplicateToToolStripMenuItem_Click(object sender, EventArgs e)
 		{
@@ -2698,6 +2627,86 @@ namespace SonicRetro.SAModel.SADXLVL2
 				LevelData_StateChanged();
 			}
 		}
+
+		void optionsEditor_FormUpdated()
+		{
+			DrawLevel();
+		}
+		#endregion
+
+		void LevelData_StateChanged()
+		{
+			if (transformGizmo != null)
+				transformGizmo.AffectedItems = selectedItems.GetSelection();
+
+			DrawLevel();
+		}
+
+		#region Gizmo Button Event Methods
+		private void selectModeButton_Click(object sender, EventArgs e)
+		{
+			if (transformGizmo != null)
+			{
+				transformGizmo.Mode = TransformMode.NONE;
+				gizmoSpaceComboBox.Enabled = true;
+				moveModeButton.Checked = false;
+				rotateModeButton.Checked = false;
+				DrawLevel(); // TODO: possibly find a better way of doing this than re-drawing the entire scene? Possibly keep a copy of the last render w/o gizmo in memory?
+			}
+		}
+
+		private void moveModeButton_Click(object sender, EventArgs e)
+		{
+			if (transformGizmo != null)
+			{
+				transformGizmo.Mode = TransformMode.TRANFORM_MOVE;
+				gizmoSpaceComboBox.Enabled = true;
+				selectModeButton.Checked = false;
+				rotateModeButton.Checked = false;
+				scaleModeButton.Checked = false;
+				DrawLevel();
+			}
+		}
+
+		private void rotateModeButton_Click(object sender, EventArgs e)
+		{
+			if (transformGizmo != null)
+			{
+				transformGizmo.Mode = TransformMode.TRANSFORM_ROTATE;
+				transformGizmo.LocalTransform = true;
+				gizmoSpaceComboBox.SelectedIndex = 1;
+				gizmoSpaceComboBox.Enabled = false;
+				selectModeButton.Checked = false;
+				moveModeButton.Checked = false;
+				scaleModeButton.Checked = false;
+				DrawLevel();
+			}
+		}
+
+		private void gizmoSpaceComboBox_DropDownClosed(object sender, EventArgs e)
+		{
+			if (transformGizmo != null)
+			{
+				transformGizmo.LocalTransform = (gizmoSpaceComboBox.SelectedIndex != 0);
+				DrawLevel();
+			}
+		}
+
+		private void scaleModeButton_Click(object sender, EventArgs e)
+		{
+			if (transformGizmo != null)
+			{
+				transformGizmo.Mode = TransformMode.TRANSFORM_SCALE;
+				transformGizmo.LocalTransform = true;
+				gizmoSpaceComboBox.SelectedIndex = 1;
+				gizmoSpaceComboBox.Enabled = false;
+				selectModeButton.Checked = false;
+				moveModeButton.Checked = false;
+				DrawLevel();
+			}
+		}
+		#endregion
+
 
 		#region Playtest and Mod Management Methods
 		private void playTestButton_Click(object sender, EventArgs e)
