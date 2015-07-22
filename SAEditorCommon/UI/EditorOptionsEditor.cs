@@ -48,7 +48,7 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
         private void doneButton_Click(object sender, EventArgs e)
         {
             FormUpdated();
-            Close();
+			this.Hide(); ;
         }
 
         private void fullBrightCheck_Click(object sender, EventArgs e)
@@ -56,5 +56,10 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
             EditorOptions.OverrideLighting = fullBrightCheck.Checked;
             FormUpdated();
         }
+
+		private void EditorOptionsEditor_Leave(object sender, EventArgs e)
+		{
+			this.Hide();
+		}
     }
 }

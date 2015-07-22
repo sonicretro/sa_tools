@@ -152,6 +152,7 @@
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(274, 287);
+			this.ControlBox = false;
 			this.Controls.Add(this.doneButton);
 			this.Controls.Add(this.groupBox1);
 			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -159,6 +160,7 @@
 			this.Name = "EditorOptionsEditor";
 			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
 			this.Text = "Editor Options / Preferences";
+			this.Leave += new System.EventHandler(this.EditorOptionsEditor_Leave);
 			this.groupBox1.ResumeLayout(false);
 			this.groupBox1.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)(this.drawDistSlider)).EndInit();
