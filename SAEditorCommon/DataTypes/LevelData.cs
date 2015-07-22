@@ -22,7 +22,6 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 		public static string leveltexs;
 		public static Dictionary<string, BMPInfo[]> TextureBitmaps;
 		public static Dictionary<string, Texture[]> Textures;
-		public static List<LevelItem> LevelItems;
 		public static readonly string[] Characters = { "Sonic", "Tails", "Knuckles", "Amy", "Gamma", "Big" };
 		public static readonly string[] SETChars = { "S", "M", "K", "A", "E", "B" };
 		public static int Character;
@@ -30,6 +29,9 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 		public static string LevelName;
 		public static string SETName;
 		public static List<ObjectDefinition> ObjDefs;
+
+		// lists of Item class
+		public static List<LevelItem> LevelItems;
 		public static List<SETItem>[] SETItems;
 		public static List<CAMItem>[] CAMItems;
 		public static List<DeathZoneItem> DeathZones;
@@ -150,7 +152,7 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 			return String.Format("Landtable items: {0}\nTexture Archives: {1}\nAnimated Level Models:{2}\nSET Items: {3}\nCamera Zones/Items:{4}", landtableItems, textureArcCount, animatedItems, setItems, cameraItems);
 		}
 
-		public static void DuplicateSelection(Device d3ddevice, EditorItemSelection selection, out bool errorFlag, out string errorMsg)
+		public static void DuplicateSelection(Device d3ddevice, ref EditorItemSelection selection, out bool errorFlag, out string errorMsg)
 		{
 			if (selection.ItemCount < 0) { errorFlag = true; errorMsg = "Negative selection count... what did you do?!?"; return; }
 
@@ -170,8 +172,10 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 				}
 				else if (currentItems[i] is LevelItem)
 				{
-					LevelItem originalItem = (LevelItem)currentItems[0];
-					LevelItem newItem = new LevelItem(d3ddevice, originalItem.CollisionData.Model.Attach, originalItem.Position, originalItem.Rotation, LevelItems.Count, selection);
+					LevelItem originalItem = (LevelItem)currentItems[i];
+					LevelItem newItem = new LevelItem(d3ddevice, originalItem.CollisionData.Model.Attach, 
+						new Vertex(originalItem.Position.X, originalItem.Position.Y, originalItem.Position.Z),
+						new Rotation(originalItem.Rotation.X, originalItem.Rotation.Y, originalItem.Rotation.Z), LevelItems.Count, selection);
 
 					newItem.CollisionData.SurfaceFlags = originalItem.CollisionData.SurfaceFlags;
 					newItems.Add(newItem);

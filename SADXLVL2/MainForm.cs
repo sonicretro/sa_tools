@@ -2555,7 +2555,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 		{
 			bool errorFlag;
 			string errorMsg;
-			LevelData.DuplicateSelection(d3ddevice, selectedItems, out errorFlag, out errorMsg);
+			LevelData.DuplicateSelection(d3ddevice, ref selectedItems, out errorFlag, out errorMsg);
 
 			if (errorFlag) MessageBox.Show(errorMsg);
 		}

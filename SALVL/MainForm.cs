@@ -834,7 +834,7 @@ namespace SonicRetro.SAModel.SALVL
 		{
 			bool errorFlag = false;
 			string errorMsg = "";
-			LevelData.DuplicateSelection(d3ddevice, selectedItems, out errorFlag, out errorMsg);
+			LevelData.DuplicateSelection(d3ddevice, ref selectedItems, out errorFlag, out errorMsg);
 
 			if (errorFlag) MessageBox.Show(errorMsg);
 		}

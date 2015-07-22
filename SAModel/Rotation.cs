@@ -40,6 +40,11 @@ namespace SonicRetro.SAModel
 			get { return 12; }
 		}
 
+#if DEBUG
+		[Browsable(false)]
+		private Guid instanceID = Guid.NewGuid();
+#endif
+
 		public Rotation()
 		{
 		}
