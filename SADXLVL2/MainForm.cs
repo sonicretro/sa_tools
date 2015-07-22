@@ -88,7 +88,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			panel1.MouseWheel += panel1_MouseWheel;
 
 			// setting up our log file
-			editorLogStream = new StreamWriter(Application.StartupPath + "SADXLVL2.log");
+			editorLogStream = new StreamWriter(Application.StartupPath + "\\SADXLVL2.log");
 
 #if DEBUG
 			ToolStripMenuItem editorDebugItem = new ToolStripMenuItem("Editor Memory");
@@ -890,7 +890,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 								errorStrings.Add("\t\tExists:\t" + texExists);
 							}
 
-							File.WriteAllLines(string.Concat(Settings.GamePath, "SADXLVL2.log"), errorStrings.ToArray()); // save our error output to a log file in the game's root folder.
+							foreach (string errorString in errorStrings) LogMessageLine(errorString);
 
 							MessageBox.Show(count + ((count == 1) ? " object" : " objects") + " failed to load their model(s).\n"
 											+
@@ -963,6 +963,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 					{
 						progress.SetTaskAndStep("Loading Level Effects...");
 
+						List<string> levelEffectErrors = new List<string>();
 						LevelDefinition def = null;
 						string codeType = "SADXObjectDefinitions.Level_Effects." + Path.GetFileNameWithoutExtension(level.Effects);
 						string dllfile = Path.Combine("dllcache", codeType + ".dll");
@@ -1024,7 +1025,19 @@ namespace SonicRetro.SAModel.SADXLVL2
 									};
 								CompilerResults res = pr.CompileAssemblyFromFile(para, filePath);
 								if (!res.Errors.HasErrors)
+								{
 									def = (LevelDefinition)Activator.CreateInstance(res.CompiledAssembly.GetType(codeType));
+								}
+								else
+								{
+									foreach(CompilerError error in res.Errors)
+									{
+										levelEffectErrors.Add("Error in " + error.FileName);
+										levelEffectErrors.Add("At Line " + error.Line.ToString());
+										levelEffectErrors.Add(error.ErrorText);
+										levelEffectErrors.Add("");
+									}
+								}
 							}
 						}
 
@@ -1032,6 +1045,13 @@ namespace SonicRetro.SAModel.SADXLVL2
 							def.Init(level, levelact.Act, d3ddevice);
 
 						LevelData.leveleff = def;
+
+						if(levelEffectErrors.Count > 0)
+						{
+							foreach (string errorMessage in levelEffectErrors) LogMessageLine(errorMessage);
+
+							MessageBox.Show("There were errors trying to load the level-specific effects (skybox, etc.).\nCheck SADXLVL2.log in the same folder as SADXLVL2.exe for more details.");
+						}
 					}
 
 					progress.StepProgress();
@@ -1133,9 +1153,10 @@ namespace SonicRetro.SAModel.SADXLVL2
 			catch (Exception ex)
 			{
 				MessageBox.Show(
-					ex.GetType().Name + ": " + ex.Message + "\nLog file has been saved to " + Path.Combine(Environment.CurrentDirectory, "SADXLVL2.log") + ".\nSend this to MainMemory on the Sonic Retro forums.",
+					ex.GetType().Name + ": " + ex.Message + "\nLog file has been saved to " + Application.StartupPath + "\\SADXLVL2.log" + ".\nSend this to MainMemory on the Sonic Retro forums.",
 					"SADXLVL2 Fatal Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-				File.WriteAllText("SADXLVL2.log", ex.ToString());
+				Log(ex.ToString());
+				editorLogStream.Flush();
 				initerror = true;
 			}
 #endif
@@ -1270,8 +1291,12 @@ namespace SonicRetro.SAModel.SADXLVL2
 				LevelData.StateChanged -= LevelData_StateChanged;
 			}
 			Settings.Save();
+
+			editorLogStream.Flush();
+			editorLogStream.Close();
 		}
 
+		#region Saving Methods
 		private void saveToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			SaveStage(false);
@@ -1455,6 +1480,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 			CopyUpdatedModFiles(); // update our mod build!
 		}
+		#endregion
 
 		private void exitToolStripMenuItem_Click(object sender, EventArgs e)
 		{
@@ -1466,6 +1492,32 @@ namespace SonicRetro.SAModel.SADXLVL2
 			Text = "SADXLVL2 - " + levelName + " (" + cam.Position.X + ", " + cam.Position.Y + ", " + cam.Position.Z
 				+ " Pitch=" + cam.Pitch.ToString("X") + " Yaw=" + cam.Yaw.ToString("X")
 				+ " Speed=" + cam.MoveSpeed + (cam.mode == 1 ? " Distance=" + cam.Distance : "") + ")";
+		}
+
+		/// <summary>
+		/// Adds a message to the editor's log. Message gets its own line.
+		/// </summary>
+		/// <param name="message">Message to add to the log.</param>
+		private void LogMessageLine(string message)
+		{
+			editorLogStream.WriteLine(message);
+
+#if DEBUG
+			editorLogStream.Flush();
+#endif
+		}
+
+		/// <summary>
+		/// Writes to the log, but not on its own line.
+		/// </summary>
+		/// <param name="message"></param>
+		private void Log(string message)
+		{
+			editorLogStream.Write(message);
+
+#if DEBUG
+			editorLogStream.Flush();
+#endif
 		}
 
 		#region Rendering
@@ -2706,7 +2758,6 @@ namespace SonicRetro.SAModel.SADXLVL2
 			}
 		}
 		#endregion
-
 
 		#region Playtest and Mod Management Methods
 		private void playTestButton_Click(object sender, EventArgs e)
