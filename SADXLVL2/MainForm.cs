@@ -80,6 +80,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 		// helpers / ui stuff
 		TransformGizmo transformGizmo;
+		EditorOptionsEditor optionsEditor;
 
 		private void MainForm_Load(object sender, EventArgs e)
 		{
@@ -142,6 +143,9 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 			Properties.Settings.Default.Save();
             Settings = Properties.Settings.Default;
+
+			optionsEditor = new EditorOptionsEditor(cam);
+			optionsEditor.FormUpdated += optionsEditor_FormUpdated;
 			#endregion
 		}
 
@@ -2553,9 +2557,8 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 		private void preferencesToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			EditorOptionsEditor optionsEditor = new EditorOptionsEditor(cam);
-			optionsEditor.FormUpdated += optionsEditor_FormUpdated;
-			optionsEditor.Show();
+			if (!optionsEditor.Visible) optionsEditor.Show();
+			else optionsEditor.BringToFront();
 		}
 
 		private void duplicateToToolStripMenuItem_Click(object sender, EventArgs e)
