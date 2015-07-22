@@ -13,7 +13,7 @@ namespace SADXObjectDefinitions.Level_Effects
 		NJS_OBJECT carriermdl;
 		Mesh[] carriermesh;
 
-		public override void Init(IniLevelData data, byte act, Device dev)
+		public override void Init(EditorLevelData data, byte act, Device dev)
 		{
 			carriermdl = ObjectHelper.LoadModel("Levels/Sky Chase/Egg Carrier model.sa1mdl");
 			carriermesh = ObjectHelper.GetMeshes(carriermdl, dev);

@@ -17,7 +17,7 @@ namespace SADXObjectDefinitions.Level_Effects
 		Vector3 Skybox_Scale;
 		bool NoRender;
 
-		public override void Init(IniLevelData data, byte act, Device dev)
+		public override void Init(EditorLevelData data, byte act, Device dev)
 		{
             string filePath = "Levels/Twinkle Park/Skybox Data.ini";
 

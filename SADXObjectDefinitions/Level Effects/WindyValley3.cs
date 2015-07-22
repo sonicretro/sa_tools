@@ -18,7 +18,7 @@ namespace SADXObjectDefinitions.Level_Effects
 		Mesh[][] meshes = new Mesh[4][];
 		Vector3 Skybox_Scale;
 
-		public override void Init(IniLevelData data, byte act, Device dev)
+		public override void Init(EditorLevelData data, byte act, Device dev)
 		{
             string filePath = "Levels/Windy Valley/Skybox Data.ini";
 

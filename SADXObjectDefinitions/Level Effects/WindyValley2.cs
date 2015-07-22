@@ -14,7 +14,7 @@ namespace SADXObjectDefinitions.Level_Effects
 		NJS_OBJECT[] models = new NJS_OBJECT[3];
 		Mesh[][] meshes = new Mesh[3][];
 
-		public override void Init(IniLevelData data, byte act, Device dev)
+		public override void Init(EditorLevelData data, byte act, Device dev)
 		{
 			for (int i = 0; i < 3; i++)
 			{
