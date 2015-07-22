@@ -47,6 +47,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 		EditorUniverseData ini;
 		EditorCamera cam = new EditorCamera(EditorOptions.RenderDrawDistance);
 		EditorItemSelection selectedItems = new EditorItemSelection();
+		/// <summary>A viewer that shows all the locals of this class. Useful for knowing what you've got loaded.</summary>
 		UI.EditorDataViewer dataViewer;
 		StreamWriter editorLogStream;
 		#endregion
@@ -55,6 +56,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 		string levelID;
 		SA1LevelAct levelact;
 		internal string levelName;
+		/// <summary>If a stage is loaded, this will be true.</summary>
 		bool isStageLoaded;
 		/// <summary>Any file we've changed during the session goes here. Useful for playtest mod building.</summary>
 		List<string> changedFiles = new List<string>();
@@ -65,6 +67,13 @@ namespace SonicRetro.SAModel.SADXLVL2
 		Dictionary<string, List<string>> levelNames;
 		// light list
 		List<SA1StageLightData> stageLightList;
+		private bool isGeometryPresent { get { return LevelData.geo != null; } }
+		private bool isSETPresent { get { return LevelData.SETItems != null; } }
+		private bool isCamPresent { get { return LevelData.CAMItems != null; } }
+		private bool isDeathZonePresent { get { return LevelData.DeathZones != null; } }
+
+		/// <summary>Determines whether or not we show the user the save menu or allow them to save at all.</summary>
+		bool changedSinceSave = false;
 		#endregion
 
 		#region Controls / Settings
@@ -175,8 +184,12 @@ namespace SonicRetro.SAModel.SADXLVL2
 			{
 				if (isStageLoaded)
 				{
-					if (SavePrompt(true) == DialogResult.Cancel)
-						return;
+					DialogResult saveDialogResult = SavePrompt(); // used to be true for autoclose
+					if (saveDialogResult == DialogResult.Cancel) return;
+					else if (saveDialogResult == System.Windows.Forms.DialogResult.Yes)
+					{
+						SaveStage(true);
+					}
 				}
 
 				CheckMenuItemByTag(changeLevelToolStripMenuItem, stageToLoad);
@@ -248,6 +261,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 		private void LoadINI(string filename)
 		{
 			isStageLoaded = false;
+			changedSinceSave = false;
 			ini = SAEditorCommon.EditorUniverseData.Load(filename);
 			Environment.CurrentDirectory = Path.GetDirectoryName(filename);
 			levelNames = new Dictionary<string, List<string>>();
@@ -410,33 +424,35 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 			return false;
 		}
+		#endregion
+
 		/// <summary>
 		/// Displays a dialog asking if the user would like to save.
 		/// </summary>
 		/// <param name="autoCloseDialog">Defines whether or not the save progress dialog should close on completion.</param>
 		/// <returns></returns>
-		private DialogResult SavePrompt(bool autoCloseDialog = false)
+		private DialogResult SavePrompt()
 		{
 			DialogResult result = MessageBox.Show(this, "Do you want to save?", "SADXLVL2",
 				MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
 
-			switch (result)
-			{
-				case DialogResult.Yes:
-					SaveStage(autoCloseDialog);
-					break;
-			}
-
 			return result;
 		}
-		#endregion
 
 		private void LevelToolStripMenuItem_Clicked(object sender, EventArgs e)
 		{
 			fileToolStripMenuItem.HideDropDown();
 
-			if (!isStageLoaded || SavePrompt(true) != DialogResult.Cancel)
+			if (!isStageLoaded && changedSinceSave)
 			{
+				DialogResult saveResult = SavePrompt();
+
+				if (saveResult == DialogResult.Yes)
+				{
+					SaveStage(true);
+				}
+				else if (saveResult == DialogResult.Cancel) return;
+
 				UncheckMenuItems(changeLevelToolStripMenuItem);
 				((ToolStripMenuItem)sender).Checked = true;
 				LoadStage(((ToolStripMenuItem)sender).Tag.ToString());
@@ -537,6 +553,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 					LevelData.Clear();
 
 				isStageLoaded = false;
+				changedSinceSave = false;
 
 				using (ProgressDialog progress = new ProgressDialog("Loading stage: " + levelName, steps))
 				{
@@ -1237,39 +1254,11 @@ namespace SonicRetro.SAModel.SADXLVL2
 				return;
 			}
 
-			bool isGeometryPresent = LevelData.geo != null;
-			bool isSETPreset = LevelData.SETItems != null;
-			bool isDeathZonePresent = LevelData.DeathZones != null;
-
-			// Context menu
-			// Add -> Level Piece
-			// Does this even make sense? This thing prompts the user to import a model,
-			// not select an existing one...
-			levelPieceToolStripMenuItem.Enabled = isGeometryPresent;
-			// Add -> Object
-			objectToolStripMenuItem.Enabled = isSETPreset;
-
-			// File menu
-			// Save
+			// go through the menus and enable anything with hotkeys, that way they can still be pressed, even if they 'shouldn't' be.
+			// if the controls are disabled and the editor state changes so that the options are valid, the hotkeys would still be disabled,
+			// which is why we're doing this
 			saveToolStripMenuItem.Enabled = true;
-			// Import
-			importToolStripMenuItem.Enabled = isGeometryPresent;
-			// Export
-			exportOBJToolStripMenuItem.Enabled = isGeometryPresent;
-
-			// Edit menu
-			// Clear Level
-			clearLevelToolStripMenuItem.Enabled = isGeometryPresent;
-			// SET Items submenu
-			// Gotta clear up these names at some point...
-			// Drop the 1, and you get the dropdown menu under View.
-			sETItemsToolStripMenuItem1.Enabled = true;
-			// Duplicate
 			duplicateToolStripMenuItem.Enabled = true;
-
-			// The whole view menu!
-			viewToolStripMenuItem.Enabled = true;
-			statsToolStripMenuItem.Enabled = isGeometryPresent;
 			deathZonesToolStripMenuItem.Checked = deathZonesToolStripMenuItem.Enabled = deathZoneToolStripMenuItem.Enabled = isDeathZonePresent;
 
 			isStageLoaded = true;
@@ -1282,19 +1271,23 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 			toolStrip1.Enabled = isStageLoaded;
 			LevelData_StateChanged();
+			changedSinceSave = false; // because the method call above will invalidate this, but we know that the user hasn't actually changed anything.
 		}
 		#endregion
 
 		private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
 		{
-			if (isStageLoaded)
+			if (isStageLoaded && changedSinceSave)
 			{
-				if (SavePrompt(true) == DialogResult.Cancel)
+				DialogResult savePromptResult = SavePrompt(); // used to be 'true' for autoclose.
+				if (savePromptResult == System.Windows.Forms.DialogResult.Cancel)
 				{
 					e.Cancel = true;
+					return;
 				}
 				else
 				{
+					if(DialogResult == System.Windows.Forms.DialogResult.Yes) SaveStage(true, true);
 					LevelData.StateChanged -= LevelData_StateChanged;
 				}
 			}
@@ -1318,7 +1311,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 		/// Saves changes made to the currently loaded stage.
 		/// </summary>
 		/// <param name="autoCloseDialog">Defines whether or not the progress dialog should close on completion.</param>
-		private void SaveStage(bool autoCloseDialog)
+		private void SaveStage(bool autoCloseDialog, bool closeProgramOnFinish = false)
 		{
 			if (!isStageLoaded)
 				return;
@@ -1491,6 +1484,10 @@ namespace SonicRetro.SAModel.SADXLVL2
 			// todo : save stage lights here
 
 			CopyUpdatedModFiles(); // update our mod build!
+
+			changedSinceSave = false;
+
+			if (closeProgramOnFinish) Close();
 		}
 		#endregion
 
@@ -2695,6 +2692,62 @@ namespace SonicRetro.SAModel.SADXLVL2
 		{
 			DrawLevel();
 		}
+
+		private void contextMenuStrip1_Opening(object sender, CancelEventArgs e)
+		{
+			// Context menu
+			// Add -> Level Piece
+			levelPieceToolStripMenuItem.Enabled = isStageLoaded;
+			// Add -> Object
+			objectToolStripMenuItem.Enabled = isSETPresent && isStageLoaded;
+		}
+
+		#region Main Menu Drop-Down events
+		private void fileToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
+		{
+			saveToolStripMenuItem.Enabled = (changedSinceSave && isStageLoaded);
+
+			// Import
+			importToolStripMenuItem.Enabled = (isGeometryPresent && isStageLoaded);
+			// Export
+			exportOBJToolStripMenuItem.Enabled = (isGeometryPresent && isStageLoaded);
+		}
+
+		private void fileToolStripMenuItem_DropDownClosed(object sender, EventArgs e)
+		{
+			saveToolStripMenuItem.Enabled = true;
+		}
+
+		private void editToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
+		{
+			// Edit menu
+			// Clear Level
+			clearLevelToolStripMenuItem.Enabled = isGeometryPresent;
+			// SET Items submenu
+			// Gotta clear up these names at some point...
+			// Drop the 1, and you get the dropdown menu under View.
+			sETItemsToolStripMenuItem1.Enabled = isStageLoaded && isSETPresent;
+			// Duplicate
+			duplicateToolStripMenuItem.Enabled = (selectedItems.ItemCount > 0) && isStageLoaded;
+		}
+
+		private void editToolStripMenuItem_DropDownClosed(object sender, EventArgs e)
+		{
+			duplicateToolStripMenuItem.Enabled = true;
+		}
+
+		private void viewToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
+		{
+			characterToolStripMenuItem.Enabled = isStageLoaded;
+			levelToolStripMenuItem.Enabled = isGeometryPresent && isStageLoaded;
+			statsToolStripMenuItem.Enabled = isGeometryPresent && isStageLoaded;
+
+			sETItemsToolStripMenuItem1.Enabled = isStageLoaded;
+			cAMItemsToolStripMenuItem.Enabled = isStageLoaded;
+			splinesToolStripMenuItem.Enabled = isStageLoaded;
+		}
+		#endregion
+
 		#endregion
 
 		void LevelData_StateChanged()
@@ -2703,6 +2756,8 @@ namespace SonicRetro.SAModel.SADXLVL2
 				transformGizmo.AffectedItems = selectedItems.GetSelection();
 
 			DrawLevel();
+
+			changedSinceSave = true;
 		}
 
 		#region Gizmo Button Event Methods
@@ -2782,7 +2837,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 		{
 			// load the user's EXEData - we do have to get this and the user's DLLData files every time this is called, simply because 
 			// they might have changed since last time.
-			string exeDataInipath = Path.Combine(Settings.GamePath, string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\exeData.ini"));
+			string exeDataInipath = Path.GetFullPath(Settings.GamePath + string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\exeData.ini"));
 			DataMapping modExeDataMapping = IniSerializer.Deserialize<DataMapping>(exeDataInipath);
 
 			// load the user's DLLData files
@@ -2791,7 +2846,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			for (int i = 0; i < ModManagement.ModManagement.SADXSystemDLLFiles.Length; i++)
 			{
 				dllDataMappings[i] = IniSerializer.Deserialize<ModManagement.DLLDataMapping>(
-					Path.Combine(Settings.GamePath, string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\", 
+					Path.GetFullPath(Settings.GamePath + string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\", 
 					ModManagement.ModManagement.SADXSystemDLLFiles[i], "Data.ini")));
 			}
 
@@ -2877,7 +2932,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 
             // set sonic.exe to start with the -testspawn flag
-			string sonicExePath = Path.Combine(Settings.GamePath, "sonic.exe");
+			string sonicExePath = Path.GetFullPath(Settings.GamePath + "\\sonic.exe");
 			if (File.Exists(sonicExePath))
 			{
 				System.Diagnostics.Process sonicProcess = System.Diagnostics.Process.Start(sonicExePath, "-testspawn");
