@@ -1290,14 +1290,22 @@ namespace SonicRetro.SAModel.SADXLVL2
 			if (isStageLoaded)
 			{
 				if (SavePrompt(true) == DialogResult.Cancel)
+				{
 					e.Cancel = true;
-
-				LevelData.StateChanged -= LevelData_StateChanged;
+				}
+				else
+				{
+					LevelData.StateChanged -= LevelData_StateChanged;
+				}
 			}
-			Settings.Save();
 
-			editorLogStream.Flush();
-			editorLogStream.Close();
+			if (!e.Cancel)
+			{
+				Settings.Save();
+
+				editorLogStream.Flush();
+				editorLogStream.Close();
+			}
 		}
 
 		#region Saving Methods
