@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
 using Microsoft.DirectX;
 using Microsoft.DirectX.Direct3D;
 using SonicRetro.SAModel;
@@ -12,6 +13,9 @@ namespace SADXObjectDefinitions.Common
 	{
 		protected NJS_OBJECT model;
 		protected Mesh[] meshes;
+		protected Mesh renderAssist;
+		public static NJS_MATERIAL Material { get; set; }
+		public const float AssistLengthScale = 45f;
 
 		public override HitResult CheckHit(SETItem item, Vector3 Near, Vector3 Far, Viewport Viewport, Matrix Projection, Matrix View, MatrixStack transform)
 		{
@@ -31,7 +35,15 @@ namespace SADXObjectDefinitions.Common
 			transform.NJRotateObject(item.Rotation);
 			result.AddRange(model.DrawModelTree(dev, transform, ObjectHelper.GetTextures("OBJ_REGULAR"), meshes));
 			if (item.Selected)
+			{
 				result.AddRange(model.DrawModelTreeInvert(dev, transform, meshes));
+
+				transform.Push();
+				transform.NJTranslate(0, (item.Scale.Y * AssistLengthScale) + 5, 0);
+				transform.NJScale(1, item.Scale.Y * AssistLengthScale, 1);
+				result.Add(new RenderInfo(renderAssist, 0, transform.Top, Material, null, FillMode.Solid, new BoundingSphere(item.Position, item.Scale.Y * AssistLengthScale)));
+				transform.Pop();
+			}
 			transform.Pop();
 			return result;
 		}
@@ -50,6 +62,25 @@ namespace SADXObjectDefinitions.Common
 		{
 			model = ObjectHelper.LoadModel("Objects/Common/Spring/Ground.sa1mdl");
 			meshes = ObjectHelper.GetMeshes(model, dev);
+
+			if(renderAssist == null) 
+			{
+				renderAssist = Mesh.Box(dev, 2f, 2f, 2f);
+			}
+
+			if(Material == null)
+			{
+				Material = new NJS_MATERIAL
+				{
+					DiffuseColor = Color.FromArgb(200, Color.Purple),
+					SpecularColor = Color.Black,
+					UseAlpha = true,
+					DoubleSided = false,
+					Exponent = 10,
+					IgnoreSpecular = false,
+					UseTexture = false
+				};
+			}
 		}
 
 		public override string Name { get { return "Ground Spring"; } }
@@ -61,6 +92,25 @@ namespace SADXObjectDefinitions.Common
 		{
 			model = ObjectHelper.LoadModel("Objects/Common/Spring/Air.sa1mdl");
 			meshes = ObjectHelper.GetMeshes(model, dev);
+
+			if(renderAssist == null) 
+			{
+				renderAssist = Mesh.Box(dev, 2f, 2f, 2f);
+			}
+
+			if(Material == null)
+			{
+				Material = new NJS_MATERIAL
+				{
+					DiffuseColor = Color.FromArgb(200, Color.Purple),
+					SpecularColor = Color.Black,
+					UseAlpha = true,
+					DoubleSided = false,
+					Exponent = 10,
+					IgnoreSpecular = false,
+					UseTexture = false
+				};
+			}
 		}
 
 		public override string Name { get { return "Air Spring"; } }
