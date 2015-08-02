@@ -67,7 +67,6 @@
     <Compile Include="DataTypes\LevelItem.cs" />
     <Compile Include="DataTypes\SplineData.cs" />
     <Compile Include="EditorUniverseData.cs" />
-    <Compile Include="Playtest\StartInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

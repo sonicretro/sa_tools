@@ -143,6 +143,8 @@ namespace ModGenerator
 						string systemFolder = string.Concat(gamePathTextBox.Text, "\\system\\");
 						string splitConfigDirectory = string.Concat(gamePathTextBox.Text, "\\SplitConfig\\");
 						string projectFolder = string.Concat(gamePathTextBox.Text, "\\Projects\\", ProjectNameText.Text, "\\");
+
+						if (!Directory.Exists(projectFolder)) Directory.CreateDirectory(projectFolder);
 						#endregion
 
 						#region Create Necessary Split INI Files
@@ -255,6 +257,7 @@ namespace ModGenerator
 						modIniFile.WriteLine(string.Concat("Name=", ProjectNameText.Text));
 						modIniFile.WriteLine(string.Concat("Description=", descriptionText.Text));
 						modIniFile.WriteLine(string.Concat("Author=", authorText.Text));
+						modIniFile.WriteLine(string.Concat("Game=", SA_Tools.Game.SADX.ToString()));
 						modIniFile.Flush();
 						modIniFile.Close();
 						#endregion

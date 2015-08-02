@@ -52,6 +52,16 @@ namespace ModManagement
 			return output;
 		}
 
+		public static Game GameFromString(string input)
+		{
+			if (input == "SADX") return Game.SADX;
+			else if (input == "SA1") return Game.SA1;
+			else if (input == "SA2") return Game.SA2;
+			else if (input == "SA2B") return Game.SA2B;
+
+			return Game.SADX;
+		}
+
 		private static void CopyDirectory(DirectoryInfo src, string dst)
 		{
 			if (!Directory.Exists(dst))

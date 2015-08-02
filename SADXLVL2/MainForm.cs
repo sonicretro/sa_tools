@@ -889,7 +889,6 @@ namespace SonicRetro.SAModel.SADXLVL2
 							LevelData.SETItems = null;
 						}
 
-                        // TODO: Consider making a single log file for all of sadxlvl2, and append this to the end of it.
 						// Checks if there have been any errors added to the error list and does its thing
 						// This thing is a mess. If anyone can think of a cleaner way to do this, be my guest.
 						if (objectErrors.Count > 0)
@@ -2845,9 +2844,14 @@ namespace SonicRetro.SAModel.SADXLVL2
 			ModManagement.DLLDataMapping[] dllDataMappings = new ModManagement.DLLDataMapping[ModManagement.ModManagement.SADXSystemDLLFiles.Length];
 			for (int i = 0; i < ModManagement.ModManagement.SADXSystemDLLFiles.Length; i++)
 			{
-				dllDataMappings[i] = IniSerializer.Deserialize<ModManagement.DLLDataMapping>(
-					Path.GetFullPath(Settings.GamePath + string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\", 
-					ModManagement.ModManagement.SADXSystemDLLFiles[i], "Data.ini")));
+				string modRelativePath = Path.GetFullPath(Settings.GamePath + string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\",
+					ModManagement.ModManagement.SADXSystemDLLFiles[i], "Data.ini"));
+
+				if (File.Exists(modRelativePath)) dllDataMappings[i] = IniSerializer.Deserialize<ModManagement.DLLDataMapping>(modRelativePath);
+				else
+				{
+					throw new System.NotImplementedException();
+				}
 			}
 
 			foreach (string file in changedFiles)
@@ -2920,22 +2924,41 @@ namespace SonicRetro.SAModel.SADXLVL2
 
         private void PlayTestLevel()
         {
-			SaveStage(true);
+			if(changedSinceSave) SaveStage(true);
 
             // save start info data so that it can be forwarded to modloader
-			SA1StartPosInfo spawnPoint = new SA1StartPosInfo() { Position = LevelData.StartPositions[LevelData.Character].Position, YRotation = LevelData.StartPositions[LevelData.Character].Rotation.Y };
-			SAEditorCommon.Playtest.StartInfo playtestStartInfo = new SonicRetro.SAModel.SAEditorCommon.Playtest.StartInfo(levelact, spawnPoint, false, (SA1Characters)LevelData.Character);
-			string startInfoPath = string.Concat(SAEditorCommon.EditorOptions.GamePath, "\\Mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\StartData.ini");
-			IniSerializer.Serialize(playtestStartInfo, startInfoPath);
+			string spawnInfoPath = string.Concat(SAEditorCommon.EditorOptions.GamePath, "\\Mods\\", "TestSpawn", "\\StartData.ini");
 
-            // TODO: set the current mod to this one
+			List<String> spawnInfo = new List<string>();
+			spawnInfo.Add(string.Format("level={0}", (byte)levelact.Level));
+			spawnInfo.Add(string.Format("act={0}", levelact.Act));
+			spawnInfo.Add(string.Format("character={0}", LevelData.Character));
 
+			File.WriteAllLines(spawnInfoPath, spawnInfo.ToArray());
+				
+            // Set our mods properly
+			string loaderIniPath = string.Concat(SAEditorCommon.EditorOptions.GamePath, "\\Mods\\SADXModLoader.ini");
+			ModManagement.LoaderInfo loaderInfo = IniSerializer.Deserialize<ModManagement.LoaderInfo>(loaderIniPath);
+			int testSpawnIndex = -1;
+			int currentProjectIndex = -1;
+			testSpawnIndex = loaderInfo.Mods.FindIndex(item => item.ToLowerInvariant() == "TestSpawn".ToLowerInvariant());
+			currentProjectIndex = loaderInfo.Mods.FindIndex(item => item.ToLowerInvariant() == SAEditorCommon.EditorOptions.ProjectName);
+
+			loaderInfo.Mods.RemoveAll(item => item == "TestSpawn");			
+			loaderInfo.Mods.RemoveAll(item => item == SAEditorCommon.EditorOptions.ProjectName);
+
+			loaderInfo.Mods.Insert(0, "TestSpawn");
+			loaderInfo.Mods.Insert(1, SAEditorCommon.EditorOptions.ProjectName);
+
+			IniSerializer.Serialize(loaderInfo, loaderIniPath);
 
             // set sonic.exe to start with the -testspawn flag
 			string sonicExePath = Path.GetFullPath(Settings.GamePath + "\\sonic.exe");
 			if (File.Exists(sonicExePath))
 			{
-				System.Diagnostics.Process sonicProcess = System.Diagnostics.Process.Start(sonicExePath, "-testspawn");
+				System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo(sonicExePath, "-testspawn");
+				startInfo.WorkingDirectory = Path.GetDirectoryName(sonicExePath);
+				System.Diagnostics.Process sonicProcess = System.Diagnostics.Process.Start(startInfo);
 			}
 			else
 			{
