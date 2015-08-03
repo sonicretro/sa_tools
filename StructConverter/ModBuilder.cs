@@ -123,7 +123,7 @@ namespace ModGenerator
 
 			// Load mod info
 			ModManagement.ModProfile modProfile = new ModProfile(string.Concat(projectFolder, "\\mod.ini"));
-			gameType = ModManagement.ModManagement.GameFromString(modProfile.GameType); // todo: rectify this with MainForm_Load's game type checkboxes
+			gameType = ModManagement.ModManagement.GameFromString(modProfile.Game); // todo: rectify this with MainForm_Load's game type checkboxes
 
             // add all the files from the DataMappings folder
             string dataMappingsFolder = string.Concat(projectFolder, "\\DataMappings\\");

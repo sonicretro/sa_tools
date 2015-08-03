@@ -167,6 +167,28 @@ namespace ModGenerator
 						}
 						#endregion
 
+						#region Install TestSpawn If Necessary
+						string testSpawnModsFolder = string.Concat(gamePathTextBox.Text, "\\mods\\TestSpawn\\");
+						string testSpawnConfigFolder = string.Concat(Application.StartupPath, "\\Config\\SADX\\TestSpawn\\");
+						if (!Directory.Exists(testSpawnModsFolder)) Directory.CreateDirectory(testSpawnModsFolder);
+
+						string[] testSpawnFiles = Directory.GetFiles(testSpawnConfigFolder);
+
+						foreach(string file in testSpawnFiles)
+						{
+							// check to see if the file exists in the install directory, if not, move it from the local config folder.
+							string destinationFile = string.Concat(testSpawnModsFolder, Path.GetFileName(file));
+							FileInfo sourceFileHandle = new FileInfo(file);
+							FileInfo destinationFileInfo = new FileInfo(destinationFile);
+
+							if (!File.Exists(destinationFile) ||
+								((sourceFileHandle.Length != destinationFileInfo.Length) || (sourceFileHandle.CreationTime != destinationFileInfo.CreationTime)))
+							{
+								File.Copy(string.Concat(file), destinationFile, true);
+							}
+						}
+						#endregion
+
 						#region Emulating old SplitAll.bat
 						// splitSADX.bat
 						string[] args = new string[3];

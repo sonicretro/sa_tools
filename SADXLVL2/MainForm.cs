@@ -1412,7 +1412,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 						file.AddRange(item.GetBytes());
 
 					File.WriteAllBytes(setstr, file.ToArray());
-					changedFiles.Add(setstr);
+					changedFiles.Add("\\system\\SET" + LevelData.SETName + LevelData.SETChars[i] + ".bin");
 				}
 			}
 
@@ -1447,7 +1447,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 						file.AddRange(item.GetBytes());
 
 					File.WriteAllBytes(camString, file.ToArray());
-					changedFiles.Add(camString);
+					changedFiles.Add("\\system\\" + "CAM" + LevelData.SETName + LevelData.SETChars[i] + ".bin");
 				}
 			}
 
@@ -1473,7 +1473,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 					{
 						string splineOutput = Path.Combine(splineDirectory, string.Format("{0}.ini", i));
 						LevelData.LevelSplines[i].Save(splineOutput);
-						changedFiles.Add(splineOutput);
+						changedFiles.Add(ini.Paths + i.ToString() + ".ini");
 					}
 				}
 			}
@@ -2838,7 +2838,10 @@ namespace SonicRetro.SAModel.SADXLVL2
 			// load the user's EXEData - we do have to get this and the user's DLLData files every time this is called, simply because 
 			// they might have changed since last time.
 			string exeDataInipath = Path.GetFullPath(Settings.GamePath + string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\exeData.ini"));
-			DataMapping modExeDataMapping = IniSerializer.Deserialize<DataMapping>(exeDataInipath);
+			DataMapping modExeDataMapping = IniSerializer.Deserialize<DataMapping>(exeDataInipath); //todo: how do we handle this if the file doesn't yet exist?
+
+			bool hasChangedModExeMapping = false;
+			bool hasChangedDLLMappings = false; // todo: this might need to be an array, one for each dllfile. Don't want to re-build any more than we have to
 
 			// load the user's DLLData files
 			bool[] writeDLLs = new bool[ModManagement.ModManagement.SADXSystemDLLFiles.Length]; for (int i = 0; i < writeDLLs.Length; i++) writeDLLs[i] = false;
@@ -2849,7 +2852,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 					ModManagement.ModManagement.SADXSystemDLLFiles[i], "Data.ini"));
 
 				if (File.Exists(modRelativePath)) modDLLDataMappings[i] = IniSerializer.Deserialize<ModManagement.DLLDataMapping>(modRelativePath);
-				else modDLLDataMappings[i] = null; // later on in the process we'll need to create these if they're empty.
+				else modDLLDataMappings[i] = null; // todo: later on in the process we'll need to create these if they're empty. (and if any of our files belong here)
 			}
 			#endregion
 
@@ -2875,6 +2878,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 				}
 				#endregion
 
+				#region Check Mod-folder ini files for file entry
 				// we're going to check to see if our modloader ini files contain entries for the files.
 				// the user is going to expect them to load, and if they aren't part of these files, they won't load, so we'll need to fix that before it happens.
 				if (fileDataSource == ModManagement.ModManagement.DataSource.EXEData)
@@ -2897,6 +2901,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 						foreach (KeyValuePair<string, SA_Tools.FileInfo> item in sonicExeDataMapping.Files.Where((a, i) => a.Value.Filename == file))
 						{
 							modExeDataMapping.Files.Add(item.Key, item.Value);
+							hasChangedModExeMapping = true;
 						}
 					}
 				}
@@ -2910,15 +2915,46 @@ namespace SonicRetro.SAModel.SADXLVL2
 							if(item.Value.Filename == file)
 							{
 								dllOutput = ModManagement.ModManagement.SADXSystemDLLFiles[i];
-								// todo: you need to fix the relative/absolute path problems inside of split's DLL functionality before this can be fixed!
+								
+								// todo: look through the dll file's data mapping to see if we need to add the file
+								// if we do need to add it, don't forget to make the data mapping as changed
 							}
 						}
 					}
 				}
+				#endregion
 
-				// TODO: check to see if the project folder's version of the file is newer than the mod folder's version. If they're the same date, then the file
-				// TODO: is unchanged and we don't need to copy it.
+				#region Copy File to Mod Folder
+				// check to see if the project folder's version of the file is newer than the mod folder's version. If they're the same date, then the file
+				// is unchanged and we don't need to copy it.
+				string projectFileLocation = string.Concat(EditorOptions.ProjectPath, "\\", file);
+				string modFileLocation = string.Concat(EditorOptions.GamePath, "\\mods\\", EditorOptions.ProjectName, "\\", file);
+
+				System.IO.FileInfo projectFileInfo = new System.IO.FileInfo(projectFileLocation);
+				System.IO.FileInfo modFileInfo = new System.IO.FileInfo(modFileLocation);
+
+				if(projectFileInfo.LastWriteTime != modFileInfo.LastWriteTime)
+				{
+					Directory.CreateDirectory(Path.GetDirectoryName(modFileLocation));
+					File.Copy(projectFileLocation, modFileLocation, true);
+				}
+				#endregion
 			}
+
+			string modIniFilePath = Settings.GamePath + string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\") +	"mod.ini";
+			ModManagement.ModProfile modProfile = new ModManagement.ModProfile(modIniFilePath);
+
+			if(hasChangedModExeMapping)
+			{
+				IniSerializer.Serialize(modExeDataMapping, exeDataInipath);
+			}
+
+			if (File.Exists(exeDataInipath))
+			{
+				modProfile.EXEData = "exeData.ini";
+			}
+
+			IniSerializer.Serialize(modProfile, modIniFilePath);
 		}
 
         private void PlayTestLevel()

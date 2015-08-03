@@ -21,13 +21,15 @@ namespace ModManagement
 		public Dictionary<string, string> SwapFiles;
 		public string EXEFile;
 		public string EXEData;
+		public List<string> DLLDataFiles;
 		public List<string> DLLFiles;
-		public string GameType;
+		public string Game;
 
 		public ModProfile(string modFilePath)
 		{
 			StreamReader modIniFile = File.OpenText(modFilePath);
 
+			DLLDataFiles = new List<string>();
 			DLLFiles = new List<string>();
 
 			while(!modIniFile.EndOfStream)
@@ -42,7 +44,8 @@ namespace ModManagement
 				else if (modSplit[0] == "Author") Author = modSplit[1];
 				else if (modSplit[0] == "EXEFile") EXEFile = modSplit[1];
 				else if (modSplit[0] == "EXEData") EXEData = modSplit[1];
-				else if (modSplit[0] == "Game") GameType = modSplit[1];
+				else if (modSplit[0] == "Game") Game = modSplit[1];
+				else if (modSplit[0] == "DLLFile") DLLFiles.Add(modSplit[1]);
 				else
 				{
 					bool found = false;
@@ -50,7 +53,7 @@ namespace ModManagement
 					{
 						if (modSplit[0] == string.Concat(dllFile, "Data"))
 						{
-							DLLFiles.Add(modSplit[1]);
+							DLLDataFiles.Add(modSplit[1]);
 							found = true;
 							break;
 						}
@@ -64,6 +67,25 @@ namespace ModManagement
 					}
 				}
 			}
+
+			modIniFile.Close();
+		}
+
+		public void Save(string modFilePath)
+		{
+			FileStream fileStream = File.OpenWrite(modFilePath);
+			StreamWriter modIniFile = new StreamWriter(fileStream);
+
+			modIniFile.WriteLine("Name=" + Name);
+			if(Description.Length > 0) modIniFile.WriteLine("Description=" + Description);
+			if(Author.Length > 0) modIniFile.WriteLine("Author=" + Author);
+			if(EXEFile.Length > 0) modIniFile.WriteLine("EXEFile=" + EXEFile);
+			if(EXEData.Length > 0) modIniFile.WriteLine("EXEData=" + EXEData);
+			foreach (string DLLFile in DLLFiles) modIniFile.WriteLine("DLLFile=" + DLLFile);
+			foreach (string DLLData in DLLDataFiles) modIniFile.WriteLine("DLLData=" + DLLData);
+			if(Game.Length > 0) modIniFile.WriteLine("Game=" + Game);
+
+			modIniFile.Close();
 		}
 	}
 }
