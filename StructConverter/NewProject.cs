@@ -194,7 +194,7 @@ namespace ModGenerator
 							if (file.Value)
 							{
 								args[0] = string.Concat(gamePathTextBox.Text, "\\system\\", file.Key, ".DLL"); // our dll file to split
-								args[1] = string.Concat(gamePathTextBox.Text, "\\SplitConfig\\", file.Key.ToLower(), ".ini"); // our ini file data mapping
+								args[1] = string.Concat(gamePathTextBox.Text, "\\SplitConfig\\", (file.Key == "CHRMODELS_orig") ? "chrmodels" : file.Key.ToLower(), ".ini"); // our ini file data mapping
 
 								splitBackgroundWorker.ReportProgress((90 - 25 / sadxSplitDLLFiles.Length) + 25, string.Format("Splitting {0}.DLL", file.Key)); // our calculation for this is giving invalid values    
 								// greater than 100. Do the math out, then fix this.
@@ -289,7 +289,7 @@ namespace ModGenerator
 				MessageBox.Show(e.Error.Message);
 				Application.Exit();
 			}
-			else if (e.Cancelled)
+			else if (cancellationMessage.Length > 0 && (cancellationMessage != "none"))
 			{
 				MessageBox.Show(cancellationMessage);
 				Application.Exit();

@@ -2834,6 +2834,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 		// to be worth making a new class for.
 		private void CopyUpdatedModFiles()
 		{
+			#region Load Mod Data Mappings
 			// load the user's EXEData - we do have to get this and the user's DLLData files every time this is called, simply because 
 			// they might have changed since last time.
 			string exeDataInipath = Path.GetFullPath(Settings.GamePath + string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\exeData.ini"));
@@ -2841,18 +2842,16 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 			// load the user's DLLData files
 			bool[] writeDLLs = new bool[ModManagement.ModManagement.SADXSystemDLLFiles.Length]; for (int i = 0; i < writeDLLs.Length; i++) writeDLLs[i] = false;
-			ModManagement.DLLDataMapping[] dllDataMappings = new ModManagement.DLLDataMapping[ModManagement.ModManagement.SADXSystemDLLFiles.Length];
+			ModManagement.DLLDataMapping[] modDLLDataMappings = new ModManagement.DLLDataMapping[ModManagement.ModManagement.SADXSystemDLLFiles.Length];
 			for (int i = 0; i < ModManagement.ModManagement.SADXSystemDLLFiles.Length; i++)
 			{
 				string modRelativePath = Path.GetFullPath(Settings.GamePath + string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\",
 					ModManagement.ModManagement.SADXSystemDLLFiles[i], "Data.ini"));
 
-				if (File.Exists(modRelativePath)) dllDataMappings[i] = IniSerializer.Deserialize<ModManagement.DLLDataMapping>(modRelativePath);
-				else
-				{
-					throw new System.NotImplementedException();
-				}
+				if (File.Exists(modRelativePath)) modDLLDataMappings[i] = IniSerializer.Deserialize<ModManagement.DLLDataMapping>(modRelativePath);
+				else modDLLDataMappings[i] = null; // later on in the process we'll need to create these if they're empty.
 			}
+			#endregion
 
 			foreach (string file in changedFiles)
 			{
@@ -2906,7 +2905,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 					// we need to find out which dll file our file belongs to
 					for (int i = 0; i < ModManagement.ModManagement.SADXSystemDLLFiles.Length; i++)
 					{
-						foreach(KeyValuePair<string, ModManagement.DLLFileInfo> item in dllDataMappings[i].Files)
+						foreach(KeyValuePair<string, ModManagement.DLLFileInfo> item in modDLLDataMappings[i].Files)
 						{
 							if(item.Value.Filename == file)
 							{

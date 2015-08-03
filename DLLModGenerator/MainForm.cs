@@ -18,7 +18,7 @@ namespace DLLModGenerator
 			InitializeComponent();
 		}
 
-		static readonly Dictionary<string, string> typemap = new Dictionary<string, string>() {
+		static readonly Dictionary<string, string> DLLTypeMap = new Dictionary<string, string>() {
 			{ "landtable", "LandTable *" },
 			{ "landtablearray", "LandTable **" },
 			{ "model", "NJS_OBJECT *" },
@@ -33,22 +33,22 @@ namespace DLLModGenerator
 		};
 
 		DllIniData IniData;
+		Game gameType;
+		string gameFolder;
+		string projectName;
+		string projectFolder;
 
 		private void MainForm_Load(object sender, EventArgs e)
 		{
 			Settings = Properties.Settings.Default;
-			if (Settings.MRUList == null)
-				Settings.MRUList = new StringCollection();
-			StringCollection mru = new StringCollection();
-			foreach (string item in Settings.MRUList)
-				if (File.Exists(item))
-				{
-					mru.Add(item);
-					recentProjectsToolStripMenuItem.DropDownItems.Add(item.Replace("&", "&&"));
-				}
-			Settings.MRUList = mru;
-			if (Program.Arguments.Length > 0)
-				LoadINI(Program.Arguments[0]);
+
+			if (folderBrowser.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+			{
+				gameFolder = folderBrowser.SelectedPath;
+			}
+			else Application.Exit();
+
+			PickProject();
 		}
 
 		private void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -62,27 +62,36 @@ namespace DLLModGenerator
 					LoadINI(a.FileName);
 		}
 
-		private void recentProjectsToolStripMenuItem_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
+		private void PickProject()
 		{
-			fileToolStripMenuItem.DropDown.Close();
-			LoadINI(Settings.MRUList[recentProjectsToolStripMenuItem.DropDownItems.IndexOf(e.ClickedItem)]);
+			using (SonicRetro.SAModel.SAEditorCommon.UI.ProjectSelector projectSelector = new SonicRetro.SAModel.SAEditorCommon.UI.ProjectSelector(gameFolder))
+			{
+				if (projectSelector.NoProjects)
+				{
+					MessageBox.Show("No projects found. You can create a new project in the Mod Generator main menu, by clicking the \"Start a new project\" button.");
+					return;
+				}
+				else
+				{
+					projectSelector.ShowDialog();
+					projectName = projectSelector.SelectedProjectName;
+					projectFolder = projectSelector.SelectedProjectPath;
+				}
+			}
+
+			// Load mod info
+			ModManagement.ModProfile modProfile = new ModManagement.ModProfile(string.Concat(projectFolder, "\\mod.ini"));
+			gameType = (DLLModGenerator.Game)ModManagement.ModManagement.GameFromString(modProfile.GameType);
 		}
 
 		private void LoadINI(string filename)
 		{
 			IniData = IniSerializer.Deserialize<DllIniData>(filename);
-			if (Settings.MRUList.Contains(filename))
-			{
-				recentProjectsToolStripMenuItem.DropDownItems.RemoveAt(Settings.MRUList.IndexOf(filename));
-				Settings.MRUList.Remove(filename);
-			}
-			Settings.MRUList.Insert(0, filename);
-			recentProjectsToolStripMenuItem.DropDownItems.Insert(0, new ToolStripMenuItem(filename));
-			Environment.CurrentDirectory = Path.GetDirectoryName(filename);
+			Environment.CurrentDirectory = projectFolder;
 			listView1.BeginUpdate();
 			foreach (KeyValuePair<string, FileTypeHash> item in IniData.Files)
 			{
-				bool modified = HelperFunctions.FileHash(item.Key) != item.Value.Hash;
+				bool modified = HelperFunctions.FileHash(string.Concat(projectFolder, "\\", item.Key)) != item.Value.Hash;
 				listView1.Items.Add(new ListViewItem(new[] { item.Key, modified ? "Yes" : "No" }) { Checked = modified });
 			}
 			listView1.EndUpdate();
@@ -98,7 +107,7 @@ namespace DLLModGenerator
 			Settings.Save();
 		}
 
-		private void button1_Click(object sender, EventArgs e)
+		private void CheckAllButton_Click(object sender, EventArgs e)
 		{
 			listView1.BeginUpdate();
 			foreach (ListViewItem item in listView1.Items)
@@ -106,7 +115,7 @@ namespace DLLModGenerator
 			listView1.EndUpdate();
 		}
 
-		private void button2_Click(object sender, EventArgs e)
+		private void CheckModifiedButton_Click(object sender, EventArgs e)
 		{
 			listView1.BeginUpdate();
 			foreach (ListViewItem item in listView1.Items)
@@ -114,7 +123,7 @@ namespace DLLModGenerator
 			listView1.EndUpdate();
 		}
 
-		private void button3_Click(object sender, EventArgs e)
+		private void UncheckAllButton_Click(object sender, EventArgs e)
 		{
 			listView1.BeginUpdate();
 			foreach (ListViewItem item in listView1.Items)
@@ -122,7 +131,7 @@ namespace DLLModGenerator
 			listView1.EndUpdate();
 		}
 
-		private List<string> ExportCPP(TextWriter writer, bool SA2)
+		private List<string> DLLExportCPP(DllIniData exportData, TextWriter writer, bool SA2)
 		{
 			ModelFormat modelfmt = SA2 ? ModelFormat.Chunk : ModelFormat.BasicDX;
 			LandTableFormat landfmt = SA2 ? LandTableFormat.SA2 : LandTableFormat.SADX;
@@ -134,7 +143,7 @@ namespace DLLModGenerator
 				writer.WriteLine("#include \"SADXModLoader.h\"");
 			writer.WriteLine();
 			List<string> labels = new List<string>();
-			foreach (KeyValuePair<string, FileTypeHash> item in IniData.Files.Where((a, i) => listView1.CheckedIndices.Contains(i)))
+			foreach (KeyValuePair<string, FileTypeHash> item in exportData.Files.Where((a, i) => listView1.CheckedIndices.Contains(i)))
 				switch (item.Value.Type)
 				{
 					case "landtable":
@@ -167,20 +176,20 @@ namespace DLLModGenerator
 			return labels;
 		}
 
-		private void button4_Click(object sender, EventArgs e)
+		private void ExportCPPOldButton_Click(object sender, EventArgs e)
 		{
 			using (SaveFileDialog fd = new SaveFileDialog() { DefaultExt = "cpp", Filter = "C++ source files|*.cpp", InitialDirectory = Environment.CurrentDirectory, RestoreDirectory = true })
 				if (fd.ShowDialog(this) == DialogResult.OK)
 					using (TextWriter writer = File.CreateText(fd.FileName))
 					{
 						bool SA2 = IniData.Game == Game.SA2B;
-						List<string> labels = ExportCPP(writer, SA2);
+						List<string> labels = DLLExportCPP(IniData, writer, SA2);
 						writer.WriteLine("void __cdecl Init(const char *path, const HelperFunctions &helperFunctions)");
 						writer.WriteLine("{");
 						writer.WriteLine("\tHMODULE handle = GetModuleHandle(L\"{0}\");", IniData.Name);
 						List<string> exports = new List<string>(IniData.Items.Where(item => labels.Contains(item.Label)).Select(item => item.Export));
 						foreach (KeyValuePair<string, string> item in IniData.Exports.Where(item => exports.Contains(item.Key)))
-							writer.WriteLine("\t{0}{1} = ({0})GetProcAddress(handle, \"{1}\");", typemap[item.Value], item.Key);
+							writer.WriteLine("\t{0}{1} = ({0})GetProcAddress(handle, \"{1}\");", DLLTypeMap[item.Value], item.Key);
 						foreach (DllItemInfo item in IniData.Items.Where(item => labels.Contains(item.Label)))
 							writer.WriteLine("\t{0} = &{1};", item.ToString(), item.Label);
 						writer.WriteLine("}");
@@ -189,20 +198,20 @@ namespace DLLModGenerator
 					}
 		}
 
-		private void button5_Click(object sender, EventArgs e)
+		private void ExportCPPNewButton_Click(object sender, EventArgs e)
 		{
 			using (SaveFileDialog fd = new SaveFileDialog() { DefaultExt = "cpp", Filter = "C++ source files|*.cpp", InitialDirectory = Environment.CurrentDirectory, RestoreDirectory = true })
 				if (fd.ShowDialog(this) == DialogResult.OK)
 					using (TextWriter writer = File.CreateText(fd.FileName))
 					{
 						bool SA2 = IniData.Game == Game.SA2B;
-						List<string> labels = ExportCPP(writer, SA2);
+						List<string> labels = DLLExportCPP(IniData, writer, SA2);
 						writer.WriteLine("extern \"C\" __declspec(dllexport) void __cdecl Init(const char *path, const HelperFunctions &helperFunctions)");
 						writer.WriteLine("{");
 						writer.WriteLine("\tHMODULE handle = GetModuleHandle(L\"{0}\");", IniData.Name);
 						List<string> exports = new List<string>(IniData.Items.Where(item => labels.Contains(item.Label)).Select(item => item.Export));
 						foreach (KeyValuePair<string, string> item in IniData.Exports.Where(item => exports.Contains(item.Key)))
-							writer.WriteLine("\t{0}{1} = ({0})GetProcAddress(handle, \"{1}\");", typemap[item.Value], item.Key);
+							writer.WriteLine("\t{0}{1} = ({0})GetProcAddress(handle, \"{1}\");", DLLTypeMap[item.Value], item.Key);
 						foreach (DllItemInfo item in IniData.Items.Where(item => labels.Contains(item.Label)))
 							writer.WriteLine("\t{0} = &{1};", item.ToString(), item.Label);
 						writer.WriteLine("}");
@@ -211,45 +220,51 @@ namespace DLLModGenerator
 					}
 		}
 
-		private void button6_Click(object sender, EventArgs e)
+		private void ExportINIButton_Click(object sender, EventArgs e)
 		{
 			using (SaveFileDialog fd = new SaveFileDialog() { DefaultExt = "ini", Filter = "INI files|*.ini", InitialDirectory = Environment.CurrentDirectory, RestoreDirectory = true })
 				if (fd.ShowDialog(this) == DialogResult.OK)
 				{
-					string dstfol = Path.GetDirectoryName(fd.FileName);
-					DllIniData output = new DllIniData();
-					output.Name = IniData.Name;
-					output.Game = IniData.Game;
-					output.Exports = IniData.Exports;
-					output.Files = new DictionaryContainer<FileTypeHash>();
-					List<string> labels = new List<string>();
-					foreach (KeyValuePair<string, FileTypeHash> item in IniData.Files.Where((a, i) => listView1.CheckedIndices.Contains(i)))
-					{
-						Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(dstfol, item.Key)));
-						File.Copy(item.Key, Path.Combine(dstfol, item.Key), true);
-						switch (item.Value.Type)
-						{
-							case "landtable":
-								LandTable tbl = LandTable.LoadFromFile(item.Key);
-								labels.AddRange(tbl.GetLabels());
-								break;
-							case "model":
-							case "basicmodel":
-							case "chunkmodel":
-							case "basicdxmodel":
-								SonicRetro.SAModel.NJS_OBJECT mdl = new ModelFile(item.Key).Model;
-								labels.AddRange(mdl.GetLabels());
-								break;
-							case "animation":
-								Animation ani = Animation.Load(item.Key);
-								labels.Add(ani.Name);
-								break;
-						}
-						output.Files.Add(item.Key, new FileTypeHash(item.Value.Type, null));
-					}
-					output.Items = new List<DllItemInfo>(IniData.Items.Where(a => labels.Contains(a.Label)));
-					IniSerializer.Serialize(output, fd.FileName);
+					DLLExportINI(fd.FileName);
 				}
+		}
+
+		private void DLLExportINI(string fileName)
+		{
+			string dstfol = Path.GetDirectoryName(fileName);
+			DllIniData output = new DllIniData();
+			output.Name = IniData.Name;
+			output.Game = IniData.Game;
+			output.Exports = IniData.Exports;
+			output.Files = new DictionaryContainer<FileTypeHash>();
+			List<string> labels = new List<string>();
+			foreach (KeyValuePair<string, FileTypeHash> item in IniData.Files.Where((a, i) => listView1.CheckedIndices.Contains(i)))
+			{
+				string outputPath = Path.Combine(dstfol, item.Key);
+				Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
+				File.Copy(item.Key, outputPath, true);
+				switch (item.Value.Type)
+				{
+					case "landtable":
+						LandTable tbl = LandTable.LoadFromFile(item.Key);
+						labels.AddRange(tbl.GetLabels());
+						break;
+					case "model":
+					case "basicmodel":
+					case "chunkmodel":
+					case "basicdxmodel":
+						SonicRetro.SAModel.NJS_OBJECT mdl = new ModelFile(item.Key).Model;
+						labels.AddRange(mdl.GetLabels());
+						break;
+					case "animation":
+						Animation ani = Animation.Load(item.Key);
+						labels.Add(ani.Name);
+						break;
+				}
+				output.Files.Add(item.Key, new FileTypeHash(item.Value.Type, null));
+			}
+			output.Items = new List<DllItemInfo>(IniData.Items.Where(a => labels.Contains(a.Label)));
+			IniSerializer.Serialize(output, fileName);
 		}
 	}
 

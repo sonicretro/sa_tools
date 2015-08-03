@@ -16,7 +16,8 @@ namespace ModGenerator
     {
         private Properties.Settings Settings;
 
-        public Dictionary<string, string> DataTypeList = new Dictionary<string, string>()
+		#region Type Maps
+		static readonly Dictionary<string, string> DataTypeList = new Dictionary<string, string>()
         {
             { "landtable", "LandTable" },
             { "model", "Model" },
@@ -52,12 +53,29 @@ namespace ModGenerator
 			{ "stagelightdatalist", "Stage Light Data List" }
         };
 
-        public ModBuilder()
+		static readonly Dictionary<string, string> DLLTypeMap = new Dictionary<string, string>() 
+		{
+			{ "landtable", "LandTable *" },
+			{ "landtablearray", "LandTable **" },
+			{ "model", "NJS_OBJECT *" },
+			{ "modelarray", "NJS_OBJECT **" },
+			{ "basicmodel", "NJS_OBJECT *" },
+			{ "basicmodelarray", "NJS_OBJECT **" },
+			{ "basicdxmodel", "NJS_OBJECT *" },
+			{ "basicdxmodelarray", "NJS_OBJECT **" },
+			{ "chunkmodel", "NJS_OBJECT *" },
+			{ "chunkmodelarray", "NJS_OBJECT **" },
+			{ "actionarray", "NJS_ACTION **" }
+		};
+		#endregion
+
+		public ModBuilder()
         {
             InitializeComponent();
         }
 
-        DataMapping IniData;
+        DataMapping exeData;
+		List<DllIniData> dllIniFiles;
 		Game gameType;
         string gameFolder;
         string projectName;
@@ -70,6 +88,8 @@ namespace ModGenerator
             sA2ToolStripMenuItem.Checked = !Settings.ModBuilderSADX;
             sADXToolStripMenuItem.Checked = Settings.ModBuilderSADX;
 
+			dllIniFiles = new List<DllIniData>();
+
             SetGameFolder();
         }
 
@@ -81,7 +101,7 @@ namespace ModGenerator
                 Filter = "INI Files|*.ini|All Files|*.*"
             })
                 if (a.ShowDialog(this) == DialogResult.OK)
-                    LoadINI(a.FileName);
+                    LoadExeDataMapping(a.FileName);
         }
 
         private void PickProject()
@@ -103,7 +123,7 @@ namespace ModGenerator
 
 			// Load mod info
 			ModManagement.ModProfile modProfile = new ModProfile(string.Concat(projectFolder, "\\mod.ini"));
-			gameType = ModManagement.ModManagement.GameFromString(modProfile.GameType);
+			gameType = ModManagement.ModManagement.GameFromString(modProfile.GameType); // todo: rectify this with MainForm_Load's game type checkboxes
 
             // add all the files from the DataMappings folder
             string dataMappingsFolder = string.Concat(projectFolder, "\\DataMappings\\");
@@ -112,14 +132,37 @@ namespace ModGenerator
 
             foreach(string iniFile in dataMappingFiles)
             {
-                if (Path.GetFileName(iniFile) == "sonic_data.ini") LoadINI(iniFile);
-                //else MessageBox.Show("Couldn't load DLL data mapping ini - it uses a different format."); // todo: merge this with DLLModGenerator, handle the DLLs
+                if (Path.GetFileName(iniFile) == "sonic_data.ini") LoadExeDataMapping(iniFile);
+                else // load our dll mapping
+				{
+					LoadDLLDataMapping(iniFile);
+				}
             }
         }
 
-        private void LoadINI(string filename)
+		#region Loading Data Mappings
+		private void LoadDLLDataMapping(string filename)
+		{
+			DllIniData dataMapping = IniSerializer.Deserialize<DllIniData>(filename);
+			Environment.CurrentDirectory = projectFolder;
+
+			string groupName = Path.GetFileName(filename);
+			listView1.Groups.Add(groupName, groupName);
+
+			listView1.BeginUpdate();
+			foreach (KeyValuePair<string, FileTypeHash> item in dataMapping.Files)
+			{
+				bool modified = HelperFunctions.FileHash(string.Concat(projectFolder, "\\", item.Key)) != item.Value.Hash;
+				listView1.Items.Add(new ListViewItem(new[] { item.Key, modified ? "Yes" : "No" }) { Checked = modified, Group = listView1.Groups[groupName] });
+			}
+			listView1.EndUpdate();
+
+			dllIniFiles.Add(dataMapping);
+		}
+
+		private void LoadExeDataMapping(string filename)
         {
-            IniData = IniSerializer.Deserialize<DataMapping>(filename);
+            exeData = IniSerializer.Deserialize<DataMapping>(filename);
 
             Environment.CurrentDirectory = Path.GetDirectoryName(filename);
 
@@ -127,7 +170,7 @@ namespace ModGenerator
             listView1.Groups.Add(groupName, groupName);
 
             listView1.BeginUpdate();
-            foreach (KeyValuePair<string, SA_Tools.FileInfo> item in IniData.Files)
+            foreach (KeyValuePair<string, SA_Tools.FileInfo> item in exeData.Files)
             {
 				string projectRelativeFileLocation = Path.Combine(projectFolder, item.Value.Filename); // getting project-relative location
 
@@ -206,7 +249,7 @@ namespace ModGenerator
 							}
 							string path = Path.GetDirectoryName(projectRelativeFileLocation);
 							for (int i = 0; i < flags.Length; i++)
-								if (HelperFunctions.FileHash(Path.Combine(path, i.ToString(NumberFormatInfo.InvariantInfo) + (IniData.Game == Game.SA2 || IniData.Game == Game.SA2B ? ".sa2mdl" : ".sa1mdl")))
+								if (HelperFunctions.FileHash(Path.Combine(path, i.ToString(NumberFormatInfo.InvariantInfo) + (exeData.Game == Game.SA2 || exeData.Game == Game.SA2B ? ".sa2mdl" : ".sa1mdl")))
 									!= hashes[i + 1])
 								{
 									modified = true;
@@ -278,8 +321,9 @@ namespace ModGenerator
             }
             listView1.EndUpdate();
         }
+		#endregion
 
-        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+		private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Close();
         }
@@ -313,7 +357,7 @@ namespace ModGenerator
             listView1.EndUpdate();
         }
 
-		private void ExportCPP(TextWriter writer, bool SA2)
+		private void EXEExportCPP(TextWriter writer, bool SA2)
 		{
 			writer.WriteLine("// Generated by SA Tools Struct Converter");
 			writer.WriteLine();
@@ -325,12 +369,12 @@ namespace ModGenerator
 			writer.WriteLine();
 
 			Dictionary<uint, string> pointers = new Dictionary<uint, string>();
-			if (IniData != null)
+			if (exeData != null)
 			{
-				uint imagebase = IniData.ImageBase ?? 0x400000;
+				uint imagebase = exeData.ImageBase ?? 0x400000;
 				ModelFormat modelfmt = 0;
 				LandTableFormat landfmt = 0;
-				switch (IniData.Game)
+				switch (exeData.Game)
 				{
 					case Game.SA1:
 						modelfmt = ModelFormat.Basic;
@@ -348,7 +392,7 @@ namespace ModGenerator
 				}
 
 				Dictionary<string, string> models = new Dictionary<string, string>();
-				foreach (KeyValuePair<string, SA_Tools.FileInfo> item in IniData.Files.Where((a, i) => listView1.CheckedIndices.Contains(i)))
+				foreach (KeyValuePair<string, SA_Tools.FileInfo> item in exeData.Files.Where((a, i) => listView1.CheckedIndices.Contains(i)))
 				{
 					string name = item.Key.MakeIdentifier();
 					SA_Tools.FileInfo data = item.Value;
@@ -890,7 +934,7 @@ namespace ModGenerator
                 {
                     using (TextWriter writer = File.CreateText(fileDialog.FileName))
                     {
-                        ExportCPP(writer, SA2);
+                        EXEExportCPP(writer, SA2);
                         writer.WriteLine("extern \"C\" __declspec(dllexport) const ModInfo {0}ModInfo = {{ ModLoaderVer, NULL, NULL, 0, NULL, 0, NULL, 0, arrayptrandlength(pointers) }};", SA2 ? "SA2" : "SADX");
                     }
                 }
@@ -906,7 +950,7 @@ namespace ModGenerator
                 {
                     using (TextWriter writer = File.CreateText(fileDialog.FileName))
                     {
-                        ExportCPP(writer, SA2);
+                        EXEExportCPP(writer, SA2);
                         writer.WriteLine("extern \"C\" __declspec(dllexport) const PointerList Pointers = { arrayptrandlength(pointers) };");
                         writer.WriteLine();
                         writer.WriteLine("extern \"C\" __declspec(dllexport) const ModInfo {0}ModInfo = {{ ModLoaderVer }};", SA2 ? "SA2" : "SADX");
@@ -927,7 +971,7 @@ namespace ModGenerator
 				if (item.Checked) files.Add(item.Text);
 			}
 
-			DataMapping output = ModManagement.ModManagement.ExeDataINIFromList(files, projectFolder, destinationFolder, IniData);
+			DataMapping output = ModManagement.ModManagement.ExeDataINIFromList(files, projectFolder, destinationFolder, exeData);
 
 			IniSerializer.Serialize(output, Path.Combine(destinationFolder, "exeData.ini")); // todo: put a copy of this in the project folder so that sadxlvl2 knows what to copy
                                                                                             // for it's built-in 'test/play' feature*/

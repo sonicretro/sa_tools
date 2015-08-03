@@ -509,9 +509,10 @@ namespace ModManagement
 									output.Items.Add(info);
 									if (!labels.Contains(land.Name))
 									{
-										string fn = Path.Combine(fileOutputPath, i.ToString(NumberFormatInfo.InvariantInfo) + landext);
-										land.SaveToFile(fn, landfmt);
-										output.Files[fn] = new FileTypeHash("landtable", HelperFunctions.FileHash(fn));
+										string localFileName = string.Concat(data.Filename, i.ToString(NumberFormatInfo.InvariantInfo) + landext);
+										string absoluteFileName = Path.Combine(fileOutputPath, i.ToString(NumberFormatInfo.InvariantInfo) + landext);
+										land.SaveToFile(absoluteFileName, landfmt);
+										output.Files[localFileName] = new FileTypeHash("landtable", HelperFunctions.FileHash(absoluteFileName));
 										labels.AddRange(land.GetLabels());
 									}
 								}
@@ -527,7 +528,7 @@ namespace ModManagement
 								output.Items.Add(info);
 								if (!labels.Contains(mdl.Name))
 								{
-									models.Add(new ModelAnimations(fileOutputPath, name, mdl, modelfmt));
+									models.Add(new ModelAnimations(data.Filename, name, mdl, modelfmt));
 									labels.AddRange(mdl.GetLabels());
 								}
 							}
@@ -546,9 +547,9 @@ namespace ModManagement
 									info.Index = i;
 									info.Label = mdl.Name;
 									output.Items.Add(info);
-									if (!labels.Contains(mdl.Name))
+									if (!labels.Contains(mdl.Name)) // many of ___ADV00SS00_OBJECTS aren't getting their models added because they exist already in labels!
 									{
-										string fn = Path.Combine(fileOutputPath, i.ToString(NumberFormatInfo.InvariantInfo) + modelext);
+										string fn = Path.Combine(data.Filename, i.ToString(NumberFormatInfo.InvariantInfo) + modelext);
 										models.Add(new ModelAnimations(fn, idx, mdl, modelfmt));
 										labels.AddRange(mdl.GetLabels());
 									}
@@ -565,7 +566,7 @@ namespace ModManagement
 								output.Items.Add(info);
 								if (!labels.Contains(mdl.Name))
 								{
-									models.Add(new ModelAnimations(fileOutputPath, name, mdl, ModelFormat.Basic));
+									models.Add(new ModelAnimations(data.Filename, name, mdl, ModelFormat.Basic));
 									labels.AddRange(mdl.GetLabels());
 								}
 							}
@@ -586,7 +587,7 @@ namespace ModManagement
 									output.Items.Add(info);
 									if (!labels.Contains(mdl.Name))
 									{
-										string fn = Path.Combine(fileOutputPath, i.ToString(NumberFormatInfo.InvariantInfo) + ".sa1mdl");
+										string fn = Path.Combine(data.Filename, i.ToString(NumberFormatInfo.InvariantInfo) + ".sa1mdl");
 										models.Add(new ModelAnimations(fn, idx, mdl, ModelFormat.Basic));
 										labels.AddRange(mdl.GetLabels());
 									}
@@ -603,7 +604,7 @@ namespace ModManagement
 								output.Items.Add(info);
 								if (!labels.Contains(mdl.Name))
 								{
-									models.Add(new ModelAnimations(fileOutputPath, name, mdl, ModelFormat.BasicDX));
+									models.Add(new ModelAnimations(data.Filename, name, mdl, ModelFormat.BasicDX));
 									labels.AddRange(mdl.GetLabels());
 								}
 							}
@@ -624,7 +625,7 @@ namespace ModManagement
 									output.Items.Add(info);
 									if (!labels.Contains(mdl.Name))
 									{
-										string fn = Path.Combine(fileOutputPath, i.ToString(NumberFormatInfo.InvariantInfo) + ".sa1mdl");
+										string fn = Path.Combine(data.Filename, i.ToString(NumberFormatInfo.InvariantInfo) + ".sa1mdl");
 										models.Add(new ModelAnimations(fn, idx, mdl, ModelFormat.BasicDX));
 										labels.AddRange(mdl.GetLabels());
 									}
@@ -641,7 +642,7 @@ namespace ModManagement
 								output.Items.Add(info);
 								if (!labels.Contains(mdl.Name))
 								{
-									models.Add(new ModelAnimations(fileOutputPath, name, mdl, ModelFormat.Chunk));
+									models.Add(new ModelAnimations(data.Filename, name, mdl, ModelFormat.Chunk));
 									labels.AddRange(mdl.GetLabels());
 								}
 							}
@@ -662,7 +663,7 @@ namespace ModManagement
 									output.Items.Add(info);
 									if (!labels.Contains(mdl.Name))
 									{
-										string fn = Path.Combine(fileOutputPath, i.ToString(NumberFormatInfo.InvariantInfo) + ".sa2mdl");
+										string fn = Path.Combine(data.Filename, i.ToString(NumberFormatInfo.InvariantInfo) + ".sa2mdl");
 										models.Add(new ModelAnimations(fn, idx, mdl, ModelFormat.Chunk));
 										labels.AddRange(mdl.GetLabels());
 									}
@@ -691,22 +692,26 @@ namespace ModManagement
 									info.Label = ani.Model.Name;
 									info.Field = "object";
 									output.Items.Add(info);
-									string fn = Path.Combine(fileOutputPath, i.ToString(NumberFormatInfo.InvariantInfo) + ".saanim");
-									ani.Animation.Save(fn);
-									output.Files[fn] = new FileTypeHash("animation", HelperFunctions.FileHash(fn));
-									if (models.Contains(ani.Model.Name))
+									string localFileName = string.Concat(data.Filename, i.ToString(NumberFormatInfo.InvariantInfo) + ".saanim");
+									string filename = Path.Combine(fileOutputPath, i.ToString(NumberFormatInfo.InvariantInfo) + ".saanim");
+									ani.Animation.Save(filename);
+									output.Files[localFileName] = new FileTypeHash("animation", HelperFunctions.FileHash(filename));
+									if (models.Contains(ani.Model.Name)) 
 									{
 										ModelAnimations mdl = models[ani.Model.Name];
 										System.Text.StringBuilder sb = new System.Text.StringBuilder(260);
-										PathRelativePathTo(sb, Path.GetFullPath(mdl.Filename), 0, Path.GetFullPath(fn), 0);
+										string mdlFullPath = Path.GetFullPath(string.Concat(projectFolderName, mdl.Filename));
+										string fileFullPath = Path.GetFullPath(filename);
+										PathRelativePathTo(sb, mdlFullPath, 0, fileFullPath, 0); // this is where our animation paths are getting fucked up
 										mdl.Animations.Add(sb.ToString());
 									}
 									else
 									{
-										string mfn = Path.ChangeExtension(fn, modelext);
-										ModelFile.CreateFile(mfn, ani.Model, new[] { Path.GetFileName(fn) }, null, null,
+										string localModelName = Path.ChangeExtension(localFileName, modelext);
+										string modelFileName = Path.ChangeExtension(filename, modelext);
+										ModelFile.CreateFile(modelFileName, ani.Model, new[] { Path.GetFileName(filename) }, null, null,
 											idx + "->object", "splitDLL", null, modelfmt);
-										output.Files[mfn] = new FileTypeHash("model", HelperFunctions.FileHash(mfn));
+										output.Files[localFileName] = new FileTypeHash("model", HelperFunctions.FileHash(modelFileName));
 									}
 								}
 								address += 4;
@@ -717,7 +722,7 @@ namespace ModManagement
 				}
 				foreach (ModelAnimations item in models)
 				{
-					ModelFile.CreateFile(item.Filename, item.Model, item.Animations.ToArray(), null, null, item.Name, "splitDLL",
+					ModelFile.CreateFile(string.Concat(projectFolderName, item.Filename), item.Model, item.Animations.ToArray(), null, null, item.Name, "splitDLL",
 						null, item.Format);
 					string type = "model";
 					switch (item.Format)
@@ -732,7 +737,7 @@ namespace ModManagement
 							type = "chunkmodel";
 							break;
 					}
-					output.Files[item.Filename] = new FileTypeHash(type, HelperFunctions.FileHash(item.Filename));
+					output.Files[item.Filename] = new FileTypeHash(type, HelperFunctions.FileHash(string.Concat(projectFolderName, item.Filename))); // error is happening here
 				}
 
 				string dataMappingFolder = string.Concat(projectFolderName, "\\DataMappings\\");
@@ -744,7 +749,7 @@ namespace ModManagement
 			}
 			catch (Exception e)
 			{
-				errorMessage = e.Message;
+				errorMessage = e.ToString();
 				return false;
 			}
 

@@ -23,14 +23,6 @@ namespace ModManagement
 		public Dictionary<string, DLLFileInfo> Files { get; set; }
 	}
 
-	/*public enum Game
-	{
-		SA1,
-		SADX,
-		SA2,
-		SA2B
-	}*/
-
 	public class DLLFileInfo
 	{
 		[IniName("type")]
