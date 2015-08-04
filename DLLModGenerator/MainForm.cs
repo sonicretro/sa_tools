@@ -81,7 +81,7 @@ namespace DLLModGenerator
 
 			// Load mod info
 			ModManagement.ModProfile modProfile = new ModManagement.ModProfile(string.Concat(projectFolder, "\\mod.ini"));
-			gameType = (DLLModGenerator.Game)ModManagement.ModManagement.GameFromString(modProfile.GameType);
+			gameType = (DLLModGenerator.Game)ModManagement.ModManagement.GameFromString(modProfile.Game);
 		}
 
 		private void LoadINI(string filename)
