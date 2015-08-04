@@ -2567,7 +2567,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 		private void duplicateToToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			if (selectedItems.ItemCount > 0)
+			if (selectedItems.ItemCount == 0)
 			{
 				MessageBox.Show("To use this feature you must have a selection!");
 				return;
