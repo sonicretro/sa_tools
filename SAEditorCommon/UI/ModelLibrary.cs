@@ -50,9 +50,6 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 		private EditorCamera defaultCam; // the default camera is used for rendering the textures
 		private EditorCamera panelCam; // the panel cam is user-controllable and can show an object from any angle.
 		private List<Mesh> meshes;
-		private Texture[] textures; // we might want to turn this into a reference of some kind so that we don't have duplicates everywhere
-
-		public Texture[] Textures { get { return textures; } set { textures = value; RenderAllModels(); } }
 		#endregion
 
 		#region Initialization / Construction Methods

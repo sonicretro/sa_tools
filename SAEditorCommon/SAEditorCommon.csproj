@@ -81,6 +81,12 @@
     </Compile>
     <Compile Include="UI\EditorItemSelection.cs" />
     <Compile Include="UI\Gizmo.cs" />
+    <Compile Include="UI\ModelLibrary.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\ModelLibrary.Designer.cs">
+      <DependentUpon>ModelLibrary.cs</DependentUpon>
+    </Compile>
     <Compile Include="UI\PointHelper.cs" />
     <Compile Include="UI\ProgressDialog.cs">
       <SubType>Form</SubType>
@@ -166,6 +172,9 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\ModelLibrary.resx">
+      <DependentUpon>ModelLibrary.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="UI\ProgressDialog.resx">
       <DependentUpon>ProgressDialog.cs</DependentUpon>
