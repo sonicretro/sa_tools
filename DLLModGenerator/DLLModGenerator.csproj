@@ -75,7 +75,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ModManagementLibrary\ModManagement.csproj">
+    <ProjectReference Include="..\ModManagement\ModManagement.csproj">
       <Project>{e87d5430-5b58-46f8-9326-504f1bff837c}</Project>
       <Name>ModManagement</Name>
     </ProjectReference>

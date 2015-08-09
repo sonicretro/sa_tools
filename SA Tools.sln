@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SA Tools", "SA Tools\SA Tools.csproj", "{50847BDB-699D-4A2E-AAF7-1EA58E1EC48E}"
 EndProject
@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SADXTweaker2", "SADXTweaker
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SADXTweakerLite", "SADXTweakerLite\SADXTweakerLite.csproj", "{C0B52914-E9AA-4249-BAA1-60CE31B52D26}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModGenerator", "StructConverter\ModGenerator.csproj", "{68A3365C-2CE4-4916-8A1A-4583351089D7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModGenerator", "ModGenerator\ModGenerator.csproj", "{68A3365C-2CE4-4916-8A1A-4583351089D7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FunctionListGenerator", "FunctionListGenerator\FunctionListGenerator.csproj", "{397FCC67-9C8A-43E7-BA1D-2003AABDD366}"
 EndProject
@@ -67,7 +67,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SASave", "SASave\SASave.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SADXsndSharp", "SADXsndSharp\SADXsndSharp.csproj", "{E364F0F5-F803-462F-A284-F75C096FC645}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModManagement", "ModManagementLibrary\ModManagement.csproj", "{E87D5430-5B58-46F8-9326-504F1BFF837C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModManagement", "ModManagement\ModManagement.csproj", "{E87D5430-5B58-46F8-9326-504F1BFF837C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
