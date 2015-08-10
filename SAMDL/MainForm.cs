@@ -51,6 +51,7 @@ namespace SonicRetro.SAModel.SAMDL
 		BMPInfo[] TextureInfo;
 		Texture[] Textures;
 		ModelFileDialog modelinfo = new ModelFileDialog();
+		ModelLibrary modelLibrary;
 		NJS_OBJECT selectedObject;
 		Dictionary<NJS_OBJECT, TreeNode> nodeDict;
 
@@ -59,6 +60,9 @@ namespace SonicRetro.SAModel.SAMDL
 			SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.Opaque, true);
 			d3ddevice = new Device(0, DeviceType.Hardware, panel1.Handle, CreateFlags.HardwareVertexProcessing, new PresentParameters[] { new PresentParameters() { Windowed = true, SwapEffect = SwapEffect.Discard, EnableAutoDepthStencil = true, AutoDepthStencilFormat = DepthFormat.D24X8 } });
 			EditorOptions.Initialize(d3ddevice);
+			modelLibrary = new ModelLibrary();
+			modelLibrary.InitRenderer();
+			modelLibrary.SelectionChanged += modelLibrary_SelectionChanged;
 			if (Program.Arguments.Length > 0)
 				LoadFile(Program.Arguments[0]);
 		}
@@ -188,10 +192,20 @@ namespace SonicRetro.SAModel.SAMDL
 			model.ProcessVertexData();
 			NJS_OBJECT[] models = model.GetObjects();
 			meshes = new Mesh[models.Length];
+
+			modelLibrary.BeginUpdate();
 			for (int i = 0; i < models.Length; i++)
+			{
 				if (models[i].Attach != null)
+				{
 					try { meshes[i] = models[i].Attach.CreateD3DMesh(d3ddevice); }
 					catch { }
+
+					modelLibrary.Add(models[i].Attach);
+				}
+			}
+			modelLibrary.EndUpdate();
+
 			treeView1.Nodes.Clear();
 			nodeDict = new Dictionary<NJS_OBJECT, TreeNode>();
 			AddTreeNode(model, treeView1.Nodes);
@@ -246,7 +260,7 @@ namespace SonicRetro.SAModel.SAMDL
 			Close();
 		}
 
-		internal void DrawLevel()
+		internal void DrawEntireModel()
 		{
 			if (!loaded) return;
 			d3ddevice.SetTransform(TransformType.Projection, Matrix.PerspectiveFovRH((float)(Math.PI / 4), panel1.Width / (float)panel1.Height, 1, cam.DrawDistance));
@@ -320,7 +334,7 @@ namespace SonicRetro.SAModel.SAMDL
 
 		private void panel1_Paint(object sender, PaintEventArgs e)
 		{
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void panel1_KeyDown(object sender, KeyEventArgs e)
@@ -442,7 +456,7 @@ namespace SonicRetro.SAModel.SAMDL
 					EditorOptions.RenderFillMode = FillMode.Point;
 				else
 					EditorOptions.RenderFillMode++;
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void panel1_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
@@ -473,7 +487,7 @@ namespace SonicRetro.SAModel.SAMDL
 			{
 				cam.Yaw = unchecked((ushort)(cam.Yaw - chg.X * 0x10));
 				cam.Pitch = unchecked((ushort)(cam.Pitch - chg.Y * 0x10));
-				DrawLevel();
+				DrawEntireModel();
 			}
 			lastmouse = evloc;
 		}
@@ -499,7 +513,7 @@ namespace SonicRetro.SAModel.SAMDL
 			if (animation == null) return;
 			animframe++;
 			if (animframe == animation.Frames) animframe = 0;
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void colladaToolStripMenuItem_Click(object sender, EventArgs e)
@@ -613,7 +627,7 @@ namespace SonicRetro.SAModel.SAMDL
 			copyModelToolStripMenuItem.Enabled = selectedObject.Attach != null;
 			pasteModelToolStripMenuItem.Enabled = Clipboard.ContainsData(GetAttachType().AssemblyQualifiedName);
 			editMaterialsToolStripMenuItem.Enabled = selectedObject.Attach is BasicAttach && TextureInfo != null;
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void objToolStripMenuItem_Click(object sender, EventArgs e)
@@ -704,21 +718,21 @@ namespace SonicRetro.SAModel.SAMDL
 			NJS_OBJECT[] models = model.GetObjects();
 			try { meshes[Array.IndexOf(models, selectedObject)] = attach.CreateD3DMesh(d3ddevice); }
 			catch { }
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void editMaterialsToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			using (MaterialEditor dlg = new MaterialEditor(((BasicAttach)selectedObject.Attach).Material, TextureInfo))
 			{
-				dlg.FormUpdated += (s, ev) => DrawLevel();
+				dlg.FormUpdated += (s, ev) => DrawEntireModel();
 				dlg.ShowDialog(this);
 			}
 		}
 
 		private void propertyGrid1_PropertyValueChanged(object s, PropertyValueChangedEventArgs e)
 		{
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
@@ -730,7 +744,7 @@ namespace SonicRetro.SAModel.SAMDL
 
 		private void primitiveRenderToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void preferencesToolStripMenuItem_Click(object sender, EventArgs e)
@@ -742,7 +756,7 @@ namespace SonicRetro.SAModel.SAMDL
 
 		void optionsEditor_FormUpdated()
 		{
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void findToolStripMenuItem_Click(object sender, EventArgs e)
@@ -759,6 +773,24 @@ namespace SonicRetro.SAModel.SAMDL
 					else
 						MessageBox.Show(this, "Not found.", "SAMDL");
 				}
+		}
+
+		private void modelLibraryToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			modelLibrary.Show();
+		}
+
+		void modelLibrary_SelectionChanged(ModelLibrary sender, int selectionIndex, Attach selectedModel)
+		{
+			if ((selectionIndex >= 0) && (selectedModel != null))
+			{
+				selectedObject.Attach = selectedModel;
+				selectedObject.Attach.ProcessVertexData();
+				NJS_OBJECT[] models = model.GetObjects();
+				try { meshes[Array.IndexOf(models, selectedObject)] = selectedObject.Attach.CreateD3DMesh(d3ddevice); }
+				catch { }
+				DrawEntireModel();
+			}
 		}
 	}
 }

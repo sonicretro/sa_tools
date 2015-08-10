@@ -32,7 +32,23 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 
 		// state tracking variables
 		private int selectedModelIndex = -1;
-		public Attach SelectedModel { get { return (selectedModelIndex >= 0) ? modelList[selectedModelIndex].Value : null; } }
+		public Attach SelectedModel { get { return (selectedModelIndex >= 0) ? modelList[selectedModelIndex].Value : null; } set 
+		{
+			selectedModelIndex = -1;
+			selectedModelIndex = modelList.FindIndex(item => item.Key == value.GetHashCode());
+
+			if(selectedModelIndex >= 0) 
+			{
+				modelListView.SelectedItems.Clear();
+				modelListView.Items[selectedModelIndex].Selected = true;
+				modelListView.Select();
+			}
+			else
+			{
+				modelListView.SelectedItems.Clear();
+			}
+		}
+		}
 
 		#region Rendering Variables
 		private Bitmap renderFailureBitmap;
@@ -64,6 +80,7 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 			njs_object = new NJS_OBJECT();
 
 			modelListView.LargeImageList = new ImageList();
+			modelListView.HideSelection = false;
 
 			panelCam = new EditorCamera(1000) { mode = 1, MoveSpeed = EditorCamera.DefaultMoveSpeed };
 			defaultCam = new EditorCamera(1000) { mode = 1, MoveSpeed = EditorCamera.DefaultMoveSpeed };
@@ -253,7 +270,7 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 			{
 				MatrixStack transform = new MatrixStack();
 				njs_object.Attach = modelList[modelToRender].Value;
-				RenderInfo.Draw(njs_object.DrawModel(d3dDevice, transform, textures, meshes[modelToRender], true), d3dDevice, camera);
+				RenderInfo.Draw(njs_object.DrawModel(d3dDevice, transform, null, meshes[modelToRender], true), d3dDevice, camera);
 			}
 			else // invalid selection, show a message telling the user to select something
 			{
@@ -283,7 +300,7 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 
 		private void UpdateTitleBar(EditorCamera camera)
 		{
-			Text = "Model Library:" + "X=" + camera.Position.X + " Y=" + camera.Position.Y + " Z=" + camera.Position.Z + " Pitch=" + camera.Pitch.ToString("X") + " Yaw=" + camera.Yaw.ToString("X") + "Speed=" + camera.MoveSpeed.ToString();
+			Text = "Model Library:" + "X=" + camera.Position.X + " Y=" + camera.Position.Y + " Z=" + camera.Position.Z + " Pitch=" + camera.Pitch.ToString("X") + " Yaw=" + camera.Yaw.ToString("X") + " Speed=" + camera.MoveSpeed.ToString();
 		}
 
 		private void SetPanelCam()
