@@ -73,6 +73,12 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="UI\DisableableWarning.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\DisableableWarning.Designer.cs">
+      <DependentUpon>DisableableWarning.cs</DependentUpon>
+    </Compile>
     <Compile Include="UI\DuplicateTo.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -156,6 +162,9 @@
   <ItemGroup>
     <EmbeddedResource Include="UI\DefaultLightEditor.resx">
       <DependentUpon>DefaultLightEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\DisableableWarning.resx">
+      <DependentUpon>DisableableWarning.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="UI\DuplicateTo.resx">
       <DependentUpon>DuplicateTo.cs</DependentUpon>

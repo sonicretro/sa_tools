@@ -209,7 +209,7 @@ namespace SonicRetro.SAModel.SAMDL
 			treeView1.Nodes.Clear();
 			nodeDict = new Dictionary<NJS_OBJECT, TreeNode>();
 			AddTreeNode(model, treeView1.Nodes);
-			loaded = saveToolStripMenuItem.Enabled = exportToolStripMenuItem.Enabled = findToolStripMenuItem.Enabled = true;
+			loaded = saveToolStripMenuItem.Enabled = exportToolStripMenuItem.Enabled = importToolStripMenuItem.Enabled = findToolStripMenuItem.Enabled = true;
 			selectedObject = model;
 			SelectedItemChanged();
 		}
@@ -235,6 +235,8 @@ namespace SonicRetro.SAModel.SAMDL
 						e.Cancel = true;
 						break;
 				}
+
+			Properties.Settings.Default.Save();
 		}
 
 		private void saveToolStripMenuItem_Click(object sender, EventArgs e)
@@ -516,6 +518,97 @@ namespace SonicRetro.SAModel.SAMDL
 			DrawEntireModel();
 		}
 
+		private void panel1_MouseDown(object sender, MouseEventArgs e)
+		{
+			if (!loaded) return;
+			HitResult dist;
+			Vector3 mousepos = new Vector3(e.X, e.Y, 0);
+			Viewport viewport = d3ddevice.Viewport;
+			Matrix proj = d3ddevice.Transform.Projection;
+			Matrix view = d3ddevice.Transform.View;
+			Vector3 Near, Far;
+			Near = mousepos;
+			Near.Z = 0;
+			Far = Near;
+			Far.Z = -1;
+			dist = model.CheckHit(Near, Far, viewport, proj, view, new MatrixStack(), meshes);
+			if (dist.IsHit)
+			{
+				selectedObject = dist.Model;
+				SelectedItemChanged();
+			}
+		}
+
+		internal Type GetAttachType()
+		{
+			return outfmt == ModelFormat.Chunk ? typeof(ChunkAttach) : typeof(BasicAttach);
+		}
+
+		bool suppressTreeEvent;
+		internal void SelectedItemChanged()
+		{
+			suppressTreeEvent = true;
+			treeView1.SelectedNode = nodeDict[selectedObject];
+			suppressTreeEvent = false;
+			propertyGrid1.SelectedObject = selectedObject;
+			copyModelToolStripMenuItem.Enabled = selectedObject.Attach != null;
+			pasteModelToolStripMenuItem.Enabled = Clipboard.ContainsData(GetAttachType().AssemblyQualifiedName);
+			editMaterialsToolStripMenuItem.Enabled = selectedObject.Attach is BasicAttach && TextureInfo != null;
+			DrawEntireModel();
+		}
+
+		#region Export Methods
+		private void objToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			SaveFileDialog a = new SaveFileDialog
+			{
+				DefaultExt = "obj",
+				Filter = "OBJ Files|*.obj"
+			};
+			if (a.ShowDialog() == DialogResult.OK)
+			{
+				using (StreamWriter objstream = new StreamWriter(a.FileName, false))
+				using (StreamWriter mtlstream = new StreamWriter(Path.ChangeExtension(a.FileName, "mtl"), false))
+				{
+					#region Material Exporting
+					string materialPrefix = model.Name;
+
+					objstream.WriteLine("mtllib " + Path.GetFileNameWithoutExtension(a.FileName) + ".mtl");
+
+					// This is admittedly not an accurate representation of the materials used in the model - HOWEVER, it makes the materials more managable in MAX
+					// So we're doing it this way. In the future we should come back and add an option to do it this way or the original way.
+					for (int texIndx = 0; texIndx < TextureInfo.Length; texIndx++)
+					{
+						mtlstream.WriteLine(String.Format("newmtl {0}_material_{1}", materialPrefix, texIndx));
+						mtlstream.WriteLine("Ka 1 1 1");
+						mtlstream.WriteLine("Kd 1 1 1");
+						mtlstream.WriteLine("Ks 0 0 0");
+						mtlstream.WriteLine("illum 1");
+
+						if (!string.IsNullOrEmpty(TextureInfo[texIndx].Name))
+						{
+							mtlstream.WriteLine("Map_Kd " + TextureInfo[texIndx].Name + ".png");
+
+							// save texture
+							string mypath = Path.GetDirectoryName(a.FileName);
+							TextureInfo[texIndx].Image.Save(Path.Combine(mypath, TextureInfo[texIndx].Name + ".png"));
+						}
+					}
+					#endregion
+
+					int totalVerts = 0;
+					int totalNorms = 0;
+					int totalUVs = 0;
+
+					bool errorFlag = false;
+
+					Direct3D.Extensions.WriteModelAsObj(objstream, model, materialPrefix, new MatrixStack(), ref totalVerts, ref totalNorms, ref totalUVs, ref errorFlag);
+
+					if (errorFlag) MessageBox.Show("Error(s) encountered during export. Inspect the output file for more details.");
+				}
+			}
+		}
+
 		private void colladaToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			using (SaveFileDialog sd = new SaveFileDialog() { DefaultExt = "dae", Filter = "DAE Files|*.dae" })
@@ -590,96 +683,58 @@ namespace SonicRetro.SAModel.SAMDL
 					File.WriteAllText(sd.FileName, result.ToString());
 				}
 		}
+		#endregion
 
-		private void panel1_MouseDown(object sender, MouseEventArgs e)
+		#region Import Methods
+		private void objToolStripMenuItem1_Click(object sender, EventArgs e)
 		{
-			if (!loaded) return;
-			HitResult dist;
-			Vector3 mousepos = new Vector3(e.X, e.Y, 0);
-			Viewport viewport = d3ddevice.Viewport;
-			Matrix proj = d3ddevice.Transform.Projection;
-			Matrix view = d3ddevice.Transform.View;
-			Vector3 Near, Far;
-			Near = mousepos;
-			Near.Z = 0;
-			Far = Near;
-			Far.Z = -1;
-			dist = model.CheckHit(Near, Far, viewport, proj, view, new MatrixStack(), meshes);
-			if (dist.IsHit)
+			if(Properties.Settings.Default.ShowImportWarning)
 			{
-				selectedObject = dist.Model;
-				SelectedItemChanged();
+				DisableableWarning warning = new DisableableWarning();
+				warning.Text = "Import Note";
+				warning.MainTextLabel.Text = string.Format("NOTE: This import feature will import to the Model Library. The imported model(s) will not immediatly show up in the scene.\nYou can add them to the scene by selecting an object from the heirarchy, then selecting a model from the Model Library.");
+				DialogResult result = warning.ShowDialog();
+
+				Properties.Settings.Default.ShowImportWarning = warning.EnableCheckBox.Checked;
+
+				if (result == System.Windows.Forms.DialogResult.Cancel) return;
 			}
-		}
 
-		internal Type GetAttachType()
-		{
-			return outfmt == ModelFormat.Chunk ? typeof(ChunkAttach) : typeof(BasicAttach);
-		}
-
-		bool suppressTreeEvent;
-		internal void SelectedItemChanged()
-		{
-			suppressTreeEvent = true;
-			treeView1.SelectedNode = nodeDict[selectedObject];
-			suppressTreeEvent = false;
-			propertyGrid1.SelectedObject = selectedObject;
-			copyModelToolStripMenuItem.Enabled = selectedObject.Attach != null;
-			pasteModelToolStripMenuItem.Enabled = Clipboard.ContainsData(GetAttachType().AssemblyQualifiedName);
-			editMaterialsToolStripMenuItem.Enabled = selectedObject.Attach is BasicAttach && TextureInfo != null;
-			DrawEntireModel();
-		}
-
-		private void objToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-			SaveFileDialog a = new SaveFileDialog
+			if(importObjDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
-				DefaultExt = "obj",
-				Filter = "OBJ Files|*.obj"
-			};
-			if (a.ShowDialog() == DialogResult.OK)
-			{
-				using (StreamWriter objstream = new StreamWriter(a.FileName, false))
-				using (StreamWriter mtlstream = new StreamWriter(Path.ChangeExtension(a.FileName, "mtl"), false))
+				string[] filePaths;
+				filePaths = importObjDialog.FileNames;
+
+				modelLibrary.BeginUpdate();
+				foreach(string filePath in filePaths)
 				{
-					#region Material Exporting
-					string materialPrefix = model.Name;
+					Attach importAttach = Direct3D.Extensions.obj2nj(filePath);
+					modelLibrary.Add(importAttach);
+				}
+				modelLibrary.EndUpdate();
 
-					objstream.WriteLine("mtllib " + Path.GetFileNameWithoutExtension(a.FileName) + ".mtl");
-
-					// This is admittedly not an accurate representation of the materials used in the model - HOWEVER, it makes the materials more managable in MAX
-					// So we're doing it this way. In the future we should come back and add an option to do it this way or the original way.
-					for (int texIndx = 0; texIndx < TextureInfo.Length; texIndx++)
-					{
-						mtlstream.WriteLine(String.Format("newmtl {0}_material_{1}", materialPrefix, texIndx));
-						mtlstream.WriteLine("Ka 1 1 1");
-						mtlstream.WriteLine("Kd 1 1 1");
-						mtlstream.WriteLine("Ks 0 0 0");
-						mtlstream.WriteLine("illum 1");
-
-						if (!string.IsNullOrEmpty(TextureInfo[texIndx].Name))
-						{
-							mtlstream.WriteLine("Map_Kd " + TextureInfo[texIndx].Name + ".png");
-
-							// save texture
-							string mypath = Path.GetDirectoryName(a.FileName);
-							TextureInfo[texIndx].Image.Save(Path.Combine(mypath, TextureInfo[texIndx].Name + ".png"));
-						}
-					}
-					#endregion
-
-					int totalVerts = 0;
-					int totalNorms = 0;
-					int totalUVs = 0;
-
-					bool errorFlag = false;
-
-					Direct3D.Extensions.WriteModelAsObj(objstream, model, materialPrefix, new MatrixStack(), ref totalVerts, ref totalNorms, ref totalUVs, ref errorFlag);
-
-					if (errorFlag) MessageBox.Show("Error(s) encountered during export. Inspect the output file for more details.");
+				if (!modelLibrary.Visible)
+				{
+					modelLibrary.Show();
+					modelLibrary.BringToFront();
 				}
 			}
 		}
+
+		private void sa1mdlToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			if (importSA1MdlDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+			{
+				throw new System.NotImplementedException();
+
+				if (!modelLibrary.Visible)
+				{
+					modelLibrary.Show();
+					modelLibrary.BringToFront();
+				}
+			}
+		}
+		#endregion
 
 		private void copyModelToolStripMenuItem_Click(object sender, EventArgs e)
 		{
