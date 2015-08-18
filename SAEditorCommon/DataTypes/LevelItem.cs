@@ -45,6 +45,8 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 			ImportModel(filePath, dev);
 			COL.CalculateBounds();
 			Paste();
+
+			COL.Model.Position.Changed += Position_Changed;
 		}
 
 		/// <summary>
@@ -59,6 +61,8 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 			COL = col;
 			col.Model.ProcessVertexData();
 			Mesh = col.Model.Attach.CreateD3DMesh(dev);
+
+			COL.Model.Position.Changed += Position_Changed;
 		}
 
 		/// <summary>
@@ -85,6 +89,8 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 			COL.CalculateBounds();
 			Mesh = COL.Model.Attach.CreateD3DMesh(dev);
 			Paste();
+
+			COL.Model.Position.Changed += Position_Changed;
 		}
 
 		[ReadOnly(true)]
@@ -258,6 +264,11 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 			set { COL.SurfaceFlags = (COL.SurfaceFlags & ~SurfaceFlags.Visible) | (value ? SurfaceFlags.Visible : 0); }
 		}
 		#endregion
+
+		void Position_Changed(Vertex sender)
+		{
+			CollisionData.CalculateBounds();
+		}
 
 		// Form property update event method
 		void pw_FormUpdated(object sender, EventArgs e)

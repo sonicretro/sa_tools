@@ -9,9 +9,16 @@ namespace SonicRetro.SAModel
 	[TypeConverter(typeof (VertexConverter))]
 	public class Vertex : IEquatable<Vertex>
 	{
-		public float X { get; set; }
-		public float Y { get; set; }
-		public float Z { get; set; }
+		public delegate void VertexChangedHandler(Vertex sender);
+		public event VertexChangedHandler Changed;
+
+		private float x;
+		private float y;
+		private float z;
+
+		public float X { get { return x; } set { x = value; if (Changed != null) { Changed(this); } } }
+		public float Y { get { return y; } set { y = value; if (Changed != null) { Changed(this); } } }
+		public float Z { get { return z; } set { z = value; if (Changed != null) { Changed(this); } } }
 
 		public static int Size
 		{
@@ -24,31 +31,31 @@ namespace SonicRetro.SAModel
 
 		public Vertex(byte[] file, int address)
 		{
-			X = ByteConverter.ToSingle(file, address);
-			Y = ByteConverter.ToSingle(file, address + 4);
-			Z = ByteConverter.ToSingle(file, address + 8);
+			x = ByteConverter.ToSingle(file, address);
+			y = ByteConverter.ToSingle(file, address + 4);
+			z = ByteConverter.ToSingle(file, address + 8);
 		}
 
 		public Vertex(string data)
 		{
 			string[] a = data.Split(',');
-			X = float.Parse(a[0], NumberStyles.Float, NumberFormatInfo.InvariantInfo);
-			Y = float.Parse(a[1], NumberStyles.Float, NumberFormatInfo.InvariantInfo);
-			Z = float.Parse(a[2], NumberStyles.Float, NumberFormatInfo.InvariantInfo);
+			x = float.Parse(a[0], NumberStyles.Float, NumberFormatInfo.InvariantInfo);
+			y = float.Parse(a[1], NumberStyles.Float, NumberFormatInfo.InvariantInfo);
+			z = float.Parse(a[2], NumberStyles.Float, NumberFormatInfo.InvariantInfo);
 		}
 
 		public Vertex(float x, float y, float z)
 		{
-			X = x;
-			Y = y;
-			Z = z;
+			this.x = x;
+			this.y = y;
+			this.z = z;
 		}
 
 		public Vertex(float[] data)
 		{
-			X = data[0];
-			Y = data[1];
-			Z = data[2];
+			x = data[0];
+			y = data[1];
+			z = data[2];
 		}
 
 		public byte[] GetBytes()
@@ -62,23 +69,23 @@ namespace SonicRetro.SAModel
 
 		public override string ToString()
 		{
-			return X.ToString(NumberFormatInfo.InvariantInfo) + ", " + Y.ToString(NumberFormatInfo.InvariantInfo) + ", " +
-			       Z.ToString(NumberFormatInfo.InvariantInfo);
+			return x.ToString(NumberFormatInfo.InvariantInfo) + ", " + y.ToString(NumberFormatInfo.InvariantInfo) + ", " +
+			       z.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
 		public string ToStruct()
 		{
-			if (X == 0 && Y == 0 && Z == 0)
+			if (x == 0 && y == 0 && z == 0)
 				return "{ 0 }";
-			return "{ " + X.ToC() + ", " + Y.ToC() + ", " + Z.ToC() + " }";
+			return "{ " + x.ToC() + ", " + x.ToC() + ", " + z.ToC() + " }";
 		}
 
 		public float[] ToArray()
 		{
 			float[] result = new float[3];
-			result[0] = X;
-			result[1] = Y;
-			result[2] = Z;
+			result[0] = x;
+			result[1] = y;
+			result[2] = z;
 			return result;
 		}
 
@@ -89,11 +96,11 @@ namespace SonicRetro.SAModel
 				switch (index)
 				{
 					case 0:
-						return X;
+						return x;
 					case 1:
-						return Y;
+						return y;
 					case 2:
-						return Z;
+						return z;
 					default:
 						throw new IndexOutOfRangeException();
 				}
@@ -103,13 +110,13 @@ namespace SonicRetro.SAModel
 				switch (index)
 				{
 					case 0:
-						X = value;
+						x = value;
 						return;
 					case 1:
-						Y = value;
+						y = value;
 						return;
 					case 2:
-						Z = value;
+						z = value;
 						return;
 					default:
 						throw new IndexOutOfRangeException();
@@ -152,7 +159,7 @@ namespace SonicRetro.SAModel
 		[Browsable(false)]
 		public bool IsEmpty
 		{
-			get { return X == 0 && Y == 0 && Z == 0; }
+			get { return x == 0 && y == 0 && z == 0; }
 		}
 
 		public override bool Equals(object obj)
@@ -164,12 +171,12 @@ namespace SonicRetro.SAModel
 
 		public override int GetHashCode()
 		{
-			return X.GetHashCode() ^ Y.GetHashCode() ^ Z.GetHashCode();
+			return x.GetHashCode() ^ y.GetHashCode() ^ z.GetHashCode();
 		}
 
 		public bool Equals(Vertex other)
 		{
-			return X == other.X && Y == other.Y && Z == other.Z;
+			return x == other.x && y == other.y && z == other.z;
 		}
 	}
 
