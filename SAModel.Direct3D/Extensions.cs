@@ -1050,6 +1050,30 @@ namespace SonicRetro.SAModel.Direct3D
 			return eulerRotationZXY;
 		}
 
+		public static Matrix GetLocalAxes(Rotation rotation, out Vector3 Up, out Vector3 Right, out Vector3 Look)
+		{
+			Matrix transform = Matrix.Identity;
+
+			try
+			{
+				MatrixFunctions.RotateXYZ(ref transform, rotation.X, rotation.Y, rotation.Z);
+			}
+			catch (NotSupportedException)
+			{
+				Console.WriteLine("Certain Item types don't support rotations. This can be ignored.");
+			}
+
+			Up = new Vector3(0, 1, 0);
+			Look = new Vector3(0, 0, 1);
+			Right = new Vector3(1, 0, 0);
+
+			Up = Vector3.TransformCoordinate(Up, transform);
+			Look = Vector3.TransformCoordinate(Look, transform);
+			Right = Vector3.TransformCoordinate(Right, transform);
+
+			return transform;
+		}
+
 		/// <summary>
 		/// Writes an object model (basic format) to the specified stream, in Alias-Wavefront *.OBJ format.
 		/// </summary>

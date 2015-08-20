@@ -131,11 +131,11 @@ namespace SonicRetro.SAModel
 		/// </summary>
 		/// <param name="points">List of points to use.</param>
 		/// <returns></returns>
-		public static Vertex CenterOfPoints(List<Vertex> points)
+		public static Vertex CenterOfPoints(Vertex[] points)
 		{
 			Vertex center = new Vertex(0, 0, 0);
 
-			if (points == null || points.Count == 0)
+			if (points == null || points.Length == 0)
 				return center;
 
 			float xTotal = 0;
@@ -149,9 +149,9 @@ namespace SonicRetro.SAModel
 				zTotal += vertex.Z;
 			}
 
-			center.X = xTotal / points.Count;
-			center.Y = yTotal / points.Count;
-			center.Z = zTotal / points.Count;
+			center.X = xTotal / points.Length;
+			center.Y = yTotal / points.Length;
+			center.Z = zTotal / points.Length;
 
 			return center;
 		}
@@ -177,6 +177,16 @@ namespace SonicRetro.SAModel
 		public bool Equals(Vertex other)
 		{
 			return x == other.x && y == other.y && z == other.z;
+		}
+
+		public static Vertex operator +(Vertex v1, Vertex v2)
+		{
+			return new Vertex(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
+		}
+
+		public static Vertex operator *(Vertex v1, float scale)
+		{
+			return new Vertex(v1.x * scale, v1.y * scale, v1.z * scale);
 		}
 	}
 

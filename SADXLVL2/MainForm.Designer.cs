@@ -104,6 +104,9 @@
 			this.toolTails = new System.Windows.Forms.ToolStripButton();
 			this.toolSonic = new System.Windows.Forms.ToolStripButton();
 			this.playTestButton = new System.Windows.Forms.ToolStripButton();
+			this.pivotComboBox = new System.Windows.Forms.ToolStripComboBox();
+			this.debugToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.boundsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.menuStrip1.SuspendLayout();
 			this.contextMenuStrip1.SuspendLayout();
 			this.splitContainer1.Panel1.SuspendLayout();
@@ -121,7 +124,7 @@
             this.helpToolStripMenuItem});
 			this.menuStrip1.Location = new System.Drawing.Point(0, 0);
 			this.menuStrip1.Name = "menuStrip1";
-			this.menuStrip1.Size = new System.Drawing.Size(584, 24);
+			this.menuStrip1.Size = new System.Drawing.Size(652, 24);
 			this.menuStrip1.TabIndex = 0;
 			this.menuStrip1.Text = "menuStrip1";
 			// 
@@ -327,7 +330,8 @@
             this.sETITemsToolStripMenuItem,
             this.cAMItemsToolStripMenuItem,
             this.splinesToolStripMenuItem,
-            this.statsToolStripMenuItem});
+            this.statsToolStripMenuItem,
+            this.debugToolStripMenuItem});
 			this.viewToolStripMenuItem.Name = "viewToolStripMenuItem";
 			this.viewToolStripMenuItem.Size = new System.Drawing.Size(42, 20);
 			this.viewToolStripMenuItem.Text = "&View";
@@ -352,37 +356,37 @@
 			this.sonicToolStripMenuItem.Checked = true;
 			this.sonicToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
 			this.sonicToolStripMenuItem.Name = "sonicToolStripMenuItem";
-			this.sonicToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.sonicToolStripMenuItem.Size = new System.Drawing.Size(118, 22);
 			this.sonicToolStripMenuItem.Text = "&Sonic";
 			// 
 			// tailsToolStripMenuItem
 			// 
 			this.tailsToolStripMenuItem.Name = "tailsToolStripMenuItem";
-			this.tailsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.tailsToolStripMenuItem.Size = new System.Drawing.Size(118, 22);
 			this.tailsToolStripMenuItem.Text = "&Tails";
 			// 
 			// knucklesToolStripMenuItem
 			// 
 			this.knucklesToolStripMenuItem.Name = "knucklesToolStripMenuItem";
-			this.knucklesToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.knucklesToolStripMenuItem.Size = new System.Drawing.Size(118, 22);
 			this.knucklesToolStripMenuItem.Text = "&Knuckles";
 			// 
 			// amyToolStripMenuItem
 			// 
 			this.amyToolStripMenuItem.Name = "amyToolStripMenuItem";
-			this.amyToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.amyToolStripMenuItem.Size = new System.Drawing.Size(118, 22);
 			this.amyToolStripMenuItem.Text = "&Amy";
 			// 
 			// gammaToolStripMenuItem
 			// 
 			this.gammaToolStripMenuItem.Name = "gammaToolStripMenuItem";
-			this.gammaToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.gammaToolStripMenuItem.Size = new System.Drawing.Size(118, 22);
 			this.gammaToolStripMenuItem.Text = "&Gamma";
 			// 
 			// bigToolStripMenuItem
 			// 
 			this.bigToolStripMenuItem.Name = "bigToolStripMenuItem";
-			this.bigToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.bigToolStripMenuItem.Size = new System.Drawing.Size(118, 22);
 			this.bigToolStripMenuItem.Text = "&Big";
 			// 
 			// levelToolStripMenuItem
@@ -489,7 +493,7 @@
 			this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.panel1.Location = new System.Drawing.Point(0, 0);
 			this.panel1.Name = "panel1";
-			this.panel1.Size = new System.Drawing.Size(318, 512);
+			this.panel1.Size = new System.Drawing.Size(386, 512);
 			this.panel1.TabIndex = 1;
 			this.panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.panel1_Paint);
 			this.panel1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.panel1_KeyDown);
@@ -618,8 +622,8 @@
 			// splitContainer1.Panel2
 			// 
 			this.splitContainer1.Panel2.Controls.Add(this.propertyGrid1);
-			this.splitContainer1.Size = new System.Drawing.Size(584, 512);
-			this.splitContainer1.SplitterDistance = 318;
+			this.splitContainer1.Size = new System.Drawing.Size(652, 512);
+			this.splitContainer1.SplitterDistance = 386;
 			this.splitContainer1.TabIndex = 2;
 			// 
 			// propertyGrid1
@@ -658,10 +662,11 @@
             this.toolKnuckles,
             this.toolTails,
             this.toolSonic,
-            this.playTestButton});
+            this.playTestButton,
+            this.pivotComboBox});
 			this.toolStrip1.Location = new System.Drawing.Point(0, 24);
 			this.toolStrip1.Name = "toolStrip1";
-			this.toolStrip1.Size = new System.Drawing.Size(584, 25);
+			this.toolStrip1.Size = new System.Drawing.Size(652, 25);
 			this.toolStrip1.TabIndex = 3;
 			this.toolStrip1.Text = "toolStrip1";
 			// 
@@ -722,6 +727,7 @@
             "Local"});
 			this.gizmoSpaceComboBox.Name = "gizmoSpaceComboBox";
 			this.gizmoSpaceComboBox.Size = new System.Drawing.Size(121, 25);
+			this.gizmoSpaceComboBox.ToolTipText = "Changes the gizmo\'s reference space";
 			this.gizmoSpaceComboBox.DropDownClosed += new System.EventHandler(this.gizmoSpaceComboBox_DropDownClosed);
 			// 
 			// toolBig
@@ -811,11 +817,36 @@
 			this.playTestButton.ToolTipText = "Playtest in-game";
 			this.playTestButton.Click += new System.EventHandler(this.playTestButton_Click);
 			// 
+			// pivotComboBox
+			// 
+			this.pivotComboBox.Items.AddRange(new object[] {
+            "CenterMass",
+            "Origin"});
+			this.pivotComboBox.Name = "pivotComboBox";
+			this.pivotComboBox.Size = new System.Drawing.Size(121, 25);
+			this.pivotComboBox.ToolTipText = "Changes the gizmo\'s pivot";
+			this.pivotComboBox.DropDownClosed += new System.EventHandler(this.pivotComboBox_DropDownClosed);
+			// 
+			// debugToolStripMenuItem
+			// 
+			this.debugToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.boundsToolStripMenuItem});
+			this.debugToolStripMenuItem.Name = "debugToolStripMenuItem";
+			this.debugToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.debugToolStripMenuItem.Text = "Debug";
+			// 
+			// boundsToolStripMenuItem
+			// 
+			this.boundsToolStripMenuItem.CheckOnClick = true;
+			this.boundsToolStripMenuItem.Name = "boundsToolStripMenuItem";
+			this.boundsToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+			this.boundsToolStripMenuItem.Text = "Bounds";
+			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(584, 564);
+			this.ClientSize = new System.Drawing.Size(652, 564);
 			this.Controls.Add(this.toolStrip1);
 			this.Controls.Add(this.splitContainer1);
 			this.Controls.Add(this.menuStrip1);
@@ -916,6 +947,9 @@
 		private System.Windows.Forms.ToolStripSeparator toolStripMenuItem2;
 		private System.Windows.Forms.ToolStripMenuItem pointToolStripMenuItem;
         private System.Windows.Forms.ToolStripButton playTestButton;
+		private System.Windows.Forms.ToolStripComboBox pivotComboBox;
+		private System.Windows.Forms.ToolStripMenuItem debugToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem boundsToolStripMenuItem;
     }
 }
 

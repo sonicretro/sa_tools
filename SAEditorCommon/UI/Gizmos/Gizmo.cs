@@ -6,7 +6,7 @@ using SonicRetro.SAModel.SAEditorCommon.Properties;
 //using SonicRetro.SAModel.SAEditorCommon.DataTypes;
 //using SonicRetro.SAModel.Direct3D;
 
-namespace SonicRetro.SAModel.SAEditorCommon.UI
+namespace SonicRetro.SAModel.SAEditorCommon.UI.Gizmos
 {
 	/// <summary>
 	/// Houses elements common to several kinds of gizmos / helpers.

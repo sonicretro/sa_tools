@@ -8,6 +8,7 @@ using Microsoft.DirectX.Direct3D;
 using SA_Tools;
 using SonicRetro.SAModel.Direct3D;
 using SonicRetro.SAModel.SAEditorCommon.UI;
+using SonicRetro.SAModel.SAEditorCommon.UI.Gizmos;
 
 namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 {

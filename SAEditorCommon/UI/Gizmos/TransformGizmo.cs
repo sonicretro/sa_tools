@@ -6,7 +6,7 @@ using Microsoft.DirectX.Direct3D;
 using SonicRetro.SAModel.Direct3D;
 using SonicRetro.SAModel.SAEditorCommon.DataTypes;
 
-namespace SonicRetro.SAModel.SAEditorCommon.UI
+namespace SonicRetro.SAModel.SAEditorCommon.UI.Gizmos
 {
 	/// <summary>Describes which axes the Gizmo will operate upon.</summary>
 	public enum GizmoSelectedAxes
@@ -47,9 +47,10 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 	}
 
 	/// <summary>
-	/// This gives the user a handle to click on for movement and rotation operations.
+	/// This gives the user a handle to click on for movement and rotation operations. Create inherited versions for operating on different kinds of objects.
+	/// (Maybe it's a better idea to do this with a single static class like Unity does?)
 	/// </summary>
-	public class TransformGizmo
+	public abstract class TransformGizmo
 	{
 		#region Private Variables
 		private Vector3 position = new Vector3();
@@ -60,24 +61,12 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 		private GizmoSelectedAxes selectedAxes = GizmoSelectedAxes.NONE; // if this value is not NONE and enabled is true, you've gotten yourself into an invalid state.
 		private TransformMode mode = TransformMode.NONE;
 		private Pivot pivot = Pivot.CenterOfMass;
-
-		private List<Item> affectedItems; // these are the items that will be affected by any transforms we are given.
 		#endregion
 
 		#region Public Accesors
 		public Vector3 Position { get { return position; } set { position = value; } }
 		public Rotation GizRotation { get { return rotation; } set { rotation = value; } }
 		public bool Enabled { get { return enabled; } set { enabled = value; } }
-
-		public List<Item> AffectedItems
-		{
-			get { return affectedItems; }
-			set
-			{
-				affectedItems = value;
-				SetGizmo();
-			}
-		}
 
 		public GizmoSelectedAxes SelectedAxes { get { return selectedAxes; } set { selectedAxes = value; } }
 
@@ -271,34 +260,7 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 		/// <summary>
 		/// Sets the Gizmo's transform to the expected values, given the current state.
 		/// </summary>
-		private void SetGizmo()
-		{
-			if (!enabled)
-				return;
-
-			try
-			{
-				if(pivot == UI.Pivot.CenterOfMass)
-				{
-					position = Item.CenterFromSelection(affectedItems).ToVector3();
-				}
-				else
-				{
-					position = (affectedItems.Count > 0) ? affectedItems[0].Position.ToVector3() : new Vector3();
-				}
-
-				if ((affectedItems.Count == 1) && isTransformLocal)
-					rotation = new Rotation(affectedItems[0].Rotation.X, affectedItems[0].Rotation.Y, affectedItems[0].Rotation.Z);
-				else
-					rotation = new Rotation();
-
-				enabled = affectedItems.Count > 0;
-			}
-			catch (NotSupportedException)
-			{
-				Console.WriteLine("Certain Item types don't support rotations. This can be ignored.");
-			}
-		}
+		public abstract void SetGizmo();
 
 		#region Move Methods
 		/// <summary>
@@ -310,7 +272,7 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 		/// <param name="Look"></param>
 		/// <param name="Right"></param>
 		/// <returns></returns>
-		private Vector3 MoveDirection(Vector2 input, EditorCamera cam, Vector3 Up, Vector3 Look, Vector3 Right)
+		public Vector3 MoveDirection(Vector2 input, EditorCamera cam, Vector3 Up, Vector3 Look, Vector3 Right)
 		{
 			float yFlip = -1; // I don't think we'll ever need to mess with this
 			float xFlip = 1;
@@ -362,14 +324,14 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 		/// <param name="Look"></param>
 		/// <param name="Right"></param>
 		/// <returns></returns>
-		private Vector3 Move(Vector2 input, Vector3 sourcePosition, EditorCamera cam, Vector3 Up, Vector3 Look, Vector3 Right)
+		public Vector3 Move(Vector2 input, Vector3 sourcePosition, EditorCamera cam, Vector3 Up, Vector3 Look, Vector3 Right)
 		{
 			return sourcePosition + MoveDirection(input, cam, Up, Look, Right);
 		}
 		#endregion
 
 		#region Rotation Methods
-		private void Rotate(Vector2 input, EditorCamera cam, MatrixStack transform, Rotation rotation)
+		public void Rotate(Vector2 input, EditorCamera cam, MatrixStack transform, Rotation rotation)
 		{
 			if(isTransformLocal)
 			{
@@ -430,18 +392,33 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 		#endregion
 
 		#region Scale Methods
-		private Vertex Scale(Vector2 input, Vertex sourceScale, EditorCamera cam, bool clamp, float minScale)
+		/// <summary>
+		/// Gets an adjusted scale value based on mouse input.
+		/// </summary>
+		/// <param name="input">Mouse Delta.</param>
+		/// <param name="sourceScale">Input scale value</param>
+		/// <param name="cam">Reference camera. Provides extra context for Mouse Delta.</param>
+		/// <param name="clamp">If TRUE, minScale is used as the lowest value that the scale can be. Clamp is applied to all dimensions of the vector.</param>
+		/// <param name="minScale">Minimum acceptable scale values.</param>
+		/// <returns></returns>
+		public Vertex Scale(Vector2 input, Vertex sourceScale, EditorCamera cam, bool clamp, float minScale)
 		{
 			switch (selectedAxes)
 			{
 				case GizmoSelectedAxes.X_AXIS:
-					return new Vertex(sourceScale.X + input.X, sourceScale.Y, sourceScale.Z);
+					return new Vertex(MathHelper.Clamp(sourceScale.X + input.X, (clamp) ? minScale : float.NegativeInfinity, float.PositiveInfinity),
+						MathHelper.Clamp(sourceScale.Y, (clamp) ? minScale : float.NegativeInfinity, float.PositiveInfinity),
+						MathHelper.Clamp(sourceScale.Z, (clamp) ? minScale : float.NegativeInfinity, float.PositiveInfinity));
 
 				case GizmoSelectedAxes.Y_AXIS:
-					return new Vertex(sourceScale.X, sourceScale.Y + input.Y, sourceScale.Z);
+					return new Vertex(MathHelper.Clamp(sourceScale.X, (clamp) ? minScale : float.NegativeInfinity, float.PositiveInfinity),
+						MathHelper.Clamp(sourceScale.Y + input.Y, (clamp) ? minScale : float.NegativeInfinity, float.PositiveInfinity),
+						MathHelper.Clamp(sourceScale.Z, (clamp) ? minScale : float.NegativeInfinity, float.PositiveInfinity));
 
 				case GizmoSelectedAxes.Z_AXIS:
-					return new Vertex(sourceScale.X, sourceScale.Y, sourceScale.Z + input.X);
+					return new Vertex(MathHelper.Clamp(sourceScale.X, (clamp) ? minScale : float.NegativeInfinity, float.PositiveInfinity),
+						MathHelper.Clamp(sourceScale.Y, (clamp) ? minScale : float.NegativeInfinity, float.PositiveInfinity),
+						MathHelper.Clamp(sourceScale.Z + input.X, (clamp) ? minScale : float.NegativeInfinity, float.PositiveInfinity));
 			}
 
 			return sourceScale;
@@ -453,85 +430,6 @@ namespace SonicRetro.SAModel.SAEditorCommon.UI
 		/// </summary>
 		/// <param name="xChange">Input for x axis.</param>
 		/// <param name="yChange">Input for y axis.</param>
-		public void TransformAffected(float xChange, float yChange, EditorCamera cam)
-		{
-			Vector2 input = new Vector2(xChange, yChange);
-			// don't operate with an invalid axis seleciton, or invalid mode
-			if (!enabled)
-				return;
-			if ((selectedAxes == GizmoSelectedAxes.NONE) || (mode == TransformMode.NONE))
-				return;
-
-			for (int i = 0; i < affectedItems.Count; i++) // loop through operands
-			{
-				Item currentItem = affectedItems[i];
-				switch (mode)
-				{
-					case TransformMode.TRANFORM_MOVE:
-						#region Move
-						Vector3 Up = new Vector3(), Look = new Vector3(), Right = new Vector3();
-						if(isTransformLocal)
-						{
-							affectedItems[i].GetLocalAxes(out Up, out Right, out Look);
-						}
-						else
-						{
-							Up = new Vector3(0, 1, 0);
-							Look = new Vector3(0,0,1);
-							Right = new Vector3(1,0,0);
-						}
-
-						Vector3 position = Move(input, currentItem.Position.ToVector3(), cam, Up, Look, Right);
-						currentItem.Position = position.ToVertex();
-						#endregion
-						break;
-
-					case TransformMode.TRANSFORM_ROTATE:
-						Rotate(input, cam, null, currentItem.Rotation);
-						break;
-
-					case TransformMode.TRANSFORM_SCALE:
-						#region
-						//if (currentItem is LevelItem)
-						//{
-						//	LevelItem levelItem = (LevelItem)currentItem;
-						//	switch (selectedAxes)
-						//	{
-						//		case GizmoSelectedAxes.X_AXIS:
-						//			levelItem.CollisionData.Model.Scale = new Vertex(levelItem.CollisionData.Model.Scale.X + xChange, levelItem.CollisionData.Model.Scale.Y, levelItem.CollisionData.Model.Scale.Z);
-						//			break;
-						//		case GizmoSelectedAxes.Y_AXIS:
-						//			levelItem.CollisionData.Model.Scale = new Vertex(levelItem.CollisionData.Model.Scale.X, levelItem.CollisionData.Model.Scale.Y + yChange, levelItem.CollisionData.Model.Scale.Z);
-						//			break;
-						//		case GizmoSelectedAxes.Z_AXIS:
-						//			levelItem.CollisionData.Model.Scale = new Vertex(levelItem.CollisionData.Model.Scale.X, levelItem.CollisionData.Model.Scale.Y, levelItem.CollisionData.Model.Scale.Z + xChange);
-						//			break;
-						//	}
-						//}
-						//else if (currentItem is CAMItem)
-						//{
-						//	CAMItem camItem = (CAMItem)currentItem;
-						//	switch (selectedAxes)
-						//	{
-						//		case GizmoSelectedAxes.X_AXIS:
-						//			camItem.Scale = new Vertex(MathHelper.Clamp(camItem.Scale.X + xChange, 1, float.MaxValue), MathHelper.Clamp(camItem.Scale.Y, 1, float.MaxValue), MathHelper.Clamp(camItem.Scale.Z, 1, float.MaxValue)); // Clamping is to prevent invalid scale valeus (0 or less)
-						//			break;
-						//		case GizmoSelectedAxes.Y_AXIS:
-						//			camItem.Scale = new Vertex(MathHelper.Clamp(camItem.Scale.X, 1, float.MaxValue), MathHelper.Clamp(camItem.Scale.Y + yChange, 1, float.MaxValue), MathHelper.Clamp(camItem.Scale.Z, 1, float.MaxValue));
-						//			break;
-						//		case GizmoSelectedAxes.Z_AXIS:
-						//			camItem.Scale = new Vertex(MathHelper.Clamp(camItem.Scale.X, 1, float.MaxValue), MathHelper.Clamp(camItem.Scale.Y, 1, float.MaxValue), MathHelper.Clamp(camItem.Scale.Z + xChange, 1, float.MaxValue)); // I just realized that Math.Min would work for these. Oh well, gave me an excuse to write a clamp function
-						//			break;
-						//	}
-						//}
-						#endregion
-						break;
-				}
-			}
-
-			SetGizmo();
-
-			LevelData.InvalidateRenderState();
-		} // end of TransformAffected()
+		public abstract void TransformAffected(float xChange, float yChange, EditorCamera cam);
 	} // end of TransformGizmo class
 } // end of namespace

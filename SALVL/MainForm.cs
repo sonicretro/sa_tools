@@ -43,7 +43,7 @@ namespace SonicRetro.SAModel.SALVL
 		EditorItemSelection selectedItems = new EditorItemSelection();
 		bool lookKeyDown;
 		bool zoomKeyDown;
-		TransformGizmo transformGizmo;
+		ItemGizmo transformGizmo;
 
 		private void MainForm_Load(object sender, EventArgs e)
 		{
@@ -126,7 +126,7 @@ namespace SonicRetro.SAModel.SALVL
 				}
 			}
 			loaded = true;
-			transformGizmo = new TransformGizmo();
+			transformGizmo = new ItemGizmo();
 			gizmoSpaceComboBox.Enabled = false;
 			gizmoSpaceComboBox.SelectedIndex = 0;
 

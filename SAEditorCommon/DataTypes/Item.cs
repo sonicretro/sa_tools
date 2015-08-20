@@ -75,46 +75,48 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 		{
 			if (SelectedItems == null) return new Vertex();
 
-			List<Vertex> vertList = new List<Vertex>();
-			foreach (Item item in SelectedItems)
+			Vertex[] vertList = new Vertex[SelectedItems.Count];
+
+			for (int selItemIndx = 0; selItemIndx < SelectedItems.Count; selItemIndx++)
 			{
+				Item item = SelectedItems[selItemIndx];
 				if (item is LevelItem)
 				{
 					LevelItem levelItem = (LevelItem)item;
 
-					vertList.Add(levelItem.CollisionData.Bounds.Center);
+					vertList[selItemIndx] = levelItem.CollisionData.Bounds.Center;
 				}
 				else
 				{
-					vertList.Add(item.Position);
+					vertList[selItemIndx] = item.Position;
 				}
 			}
 
-			return Vertex.CenterOfPoints(vertList);
+				return Vertex.CenterOfPoints(vertList);
 		}
 
-		public Matrix GetLocalAxes(out Vector3 Up, out Vector3 Right, out Vector3 Look)
-		{
-			Matrix transform = Matrix.Identity;
+		//public Matrix GetLocalAxes(out Vector3 Up, out Vector3 Right, out Vector3 Look)
+		//{
+		//	Matrix transform = Matrix.Identity;
 
-			try
-			{
-				MatrixFunctions.RotateXYZ(ref transform, Rotation.X, Rotation.Y, Rotation.Z);
-			}
-			catch (NotSupportedException)
-			{
-				Console.WriteLine("Certain Item types don't support rotations. This can be ignored.");
-			}
+		//	try
+		//	{
+		//		MatrixFunctions.RotateXYZ(ref transform, Rotation.X, Rotation.Y, Rotation.Z);
+		//	}
+		//	catch (NotSupportedException)
+		//	{
+		//		Console.WriteLine("Certain Item types don't support rotations. This can be ignored.");
+		//	}
 
-			Up = new Vector3(0, 1, 0);
-			Look = new Vector3(0, 0, 1);
-			Right = new Vector3(1, 0, 0);
+		//	Up = new Vector3(0, 1, 0);
+		//	Look = new Vector3(0, 0, 1);
+		//	Right = new Vector3(1, 0, 0);
 
-			Up = Vector3.TransformCoordinate(Up, transform);
-			Look = Vector3.TransformCoordinate(Look, transform);
-			Right = Vector3.TransformCoordinate(Right, transform);
+		//	Up = Vector3.TransformCoordinate(Up, transform);
+		//	Look = Vector3.TransformCoordinate(Look, transform);
+		//	Right = Vector3.TransformCoordinate(Right, transform);
 
-			return transform;
-		}
+		//	return transform;
+		//}
 	}
 }

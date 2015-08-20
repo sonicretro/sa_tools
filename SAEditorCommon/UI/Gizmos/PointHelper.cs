@@ -5,7 +5,7 @@ using Microsoft.DirectX;
 using Microsoft.DirectX.Direct3D;
 using SonicRetro.SAModel.Direct3D;
 
-namespace SonicRetro.SAModel.SAEditorCommon.UI
+namespace SonicRetro.SAModel.SAEditorCommon.UI.Gizmos
 {
 	/// <summary>
 	/// Point Helpers are useful for displaying and manipulating verts in 3d space.
