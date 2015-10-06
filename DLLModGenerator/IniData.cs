@@ -120,7 +120,7 @@ namespace DLLModGenerator
 		}
 	}
 
-	[System.ComponentModel.TypeConverter(typeof(StringConverter<FileTypeHash>))]
+	[TypeConverter(typeof(StringConverter<FileTypeHash>))]
 	public class FileTypeHash
 	{
 		public string Type { get; set; }
