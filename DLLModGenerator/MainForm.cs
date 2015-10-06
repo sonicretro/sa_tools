@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -238,11 +237,13 @@ namespace DLLModGenerator
 		private void DLLExportINI(string fileName)
 		{
 			string dstfol = Path.GetDirectoryName(fileName);
-			DllIniData output = new DllIniData();
-			output.Name = IniData.Name;
-			output.Game = IniData.Game;
-			output.Exports = IniData.Exports;
-			output.Files = new DictionaryContainer<FileTypeHash>();
+			DllIniData output = new DllIniData
+			{
+				Name = IniData.Name,
+				Game = IniData.Game,
+				Exports = IniData.Exports,
+				Files = new DictionaryContainer<FileTypeHash>()
+			};
 			List<string> labels = new List<string>();
 			foreach (KeyValuePair<string, FileTypeHash> item in IniData.Files.Where((a, i) => listView1.CheckedIndices.Contains(i)))
 			{
