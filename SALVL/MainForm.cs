@@ -11,6 +11,7 @@ using SonicRetro.SAModel.Direct3D.TextureSystem;
 using SonicRetro.SAModel.SAEditorCommon;
 using SonicRetro.SAModel.SAEditorCommon.DataTypes;
 using SonicRetro.SAModel.SAEditorCommon.UI;
+using SonicRetro.SAModel.SAEditorCommon.UI.Gizmos;
 
 namespace SonicRetro.SAModel.SALVL
 {
