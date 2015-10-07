@@ -1,16 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 
 using System.IO;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-
 using SonicRetro.SAModel.SAEditorCommon.UI;
 
 namespace ModGenerator
@@ -54,16 +47,16 @@ namespace ModGenerator
 
 		private void cancelButton_Click(object sender, EventArgs e)
 		{
-			this.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.hidden = true;
-			this.Hide();
+			DialogResult = DialogResult.Cancel;
+			hidden = true;
+			Hide();
 		}
 
 		private void browseButton_Click(object sender, EventArgs e)
 		{
 			DialogResult dialogResult = folderBrowserDialog1.ShowDialog();
 
-			if (dialogResult == System.Windows.Forms.DialogResult.OK)
+			if (dialogResult == DialogResult.OK)
 			{
 				gamePathTextBox.Text = folderBrowserDialog1.SelectedPath;
 			}
@@ -101,11 +94,11 @@ namespace ModGenerator
 				if (Directory.Exists(projectFolder)) // check for our project folder existing already, if so give the user a prompt.
 				{
 					DialogResult userOverWriteResult = MessageBox.Show("This project exists already. Would you like to over-write the files?\nNote: You can use the advanced settings button to specify which files to split.", "Overwrite Warning!", MessageBoxButtons.OKCancel);
-					if (userOverWriteResult == System.Windows.Forms.DialogResult.Cancel) return;
+					if (userOverWriteResult == DialogResult.Cancel) return;
 				}
 
 				// we need to temporarily lock out all of our controls and display a progress bar or something.
-				this.Enabled = false;
+				Enabled = false;
 				progressWindow.Show();
 				splitBackgroundWorker.RunWorkerAsync();
 			}
@@ -114,7 +107,7 @@ namespace ModGenerator
 
 		private void NewProject_FormClosed(object sender, FormClosedEventArgs e)
 		{
-			if (!this.hidden) Application.Exit();
+			if (!hidden) Application.Exit();
 		}
 
 		private void ProjectNameText_TextChanged(object sender, EventArgs e)
@@ -136,7 +129,7 @@ namespace ModGenerator
 					string sonicExePath = Path.Combine(gamePathTextBox.Text, "sonic.exe");
 
 					// verify our game folder
-					if (SonicRetro.SAModel.SAEditorCommon.UI.ProjectSelector.VerifyGamePath(SA_Tools.Game.SADX, gamePathTextBox.Text, out cancellationMessage))
+					if (ProjectSelector.VerifyGamePath(SA_Tools.Game.SADX, gamePathTextBox.Text, out cancellationMessage))
 					{
 						#region Get Sub-Dirs and Required Files
 						splitBackgroundWorker.ReportProgress(1, "Getting Directories...");
@@ -303,7 +296,7 @@ namespace ModGenerator
 
 		private void splitBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
 		{
-			this.Enabled = true;
+			Enabled = true;
 			progressWindow.Hide();
 
 			if (e.Error != null) // let's check out what went wrong.

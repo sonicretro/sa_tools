@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -9,51 +8,52 @@ using System.Windows.Forms;
 using SA_Tools;
 using SonicRetro.SAModel;
 using ModManagement;
+using SonicRetro.SAModel.SAEditorCommon.UI;
 
 namespace ModGenerator
 {
-    public partial class ModBuilder : Form
-    {
-        private Properties.Settings Settings;
+	public partial class ModBuilder : Form
+	{
+		private Properties.Settings Settings;
 
 		#region Type Maps
 		static readonly Dictionary<string, string> DataTypeList = new Dictionary<string, string>()
-        {
-            { "landtable", "LandTable" },
-            { "model", "Model" },
-            { "basicmodel", "Basic Model" },
-            { "basicdxmodel", "Basic Model (SADX)" },
-            { "chunkmodel", "Chunk Model" },
-            { "action", "Action (animation+model)" },
-            { "animation", "Animation" },
-            { "objlist", "Object List" },
-            { "startpos", "Start Positions" },
-            { "texlist", "Texture List" },
-            { "leveltexlist", "Level Texture List" },
-            { "triallevellist", "Trial Level List" },
-            { "bosslevellist", "Boss Level List" },
-            { "fieldstartpos", "Field Start Positions" },
-            { "soundtestlist", "Sound Test List" },
-            { "musiclist", "Music List" },
-            { "soundlist", "Sound List" },
-            { "stringarray", "String Array" },
-            { "nextlevellist", "Next Level List" },
-            { "cutscenetext", "Cutscene Text" },
-            { "recapscreen", "Recap Screen" },
-            { "npctext", "NPC Text" },
-            { "levelclearflags", "Level Clear Flags" },
-            { "deathzone", "Death Zones" },
-            { "skyboxscale", "Skybox Scale" },
-            { "stageselectlist", "Stage Select List" },
-            { "levelrankscores", "Level Rank Scores" },
-            { "levelranktimes", "Level Rank Times" },
-            { "endpos", "End Positions" },
-            { "animationlist", "Animation List" },
+		{
+			{ "landtable", "LandTable" },
+			{ "model", "Model" },
+			{ "basicmodel", "Basic Model" },
+			{ "basicdxmodel", "Basic Model (SADX)" },
+			{ "chunkmodel", "Chunk Model" },
+			{ "action", "Action (animation+model)" },
+			{ "animation", "Animation" },
+			{ "objlist", "Object List" },
+			{ "startpos", "Start Positions" },
+			{ "texlist", "Texture List" },
+			{ "leveltexlist", "Level Texture List" },
+			{ "triallevellist", "Trial Level List" },
+			{ "bosslevellist", "Boss Level List" },
+			{ "fieldstartpos", "Field Start Positions" },
+			{ "soundtestlist", "Sound Test List" },
+			{ "musiclist", "Music List" },
+			{ "soundlist", "Sound List" },
+			{ "stringarray", "String Array" },
+			{ "nextlevellist", "Next Level List" },
+			{ "cutscenetext", "Cutscene Text" },
+			{ "recapscreen", "Recap Screen" },
+			{ "npctext", "NPC Text" },
+			{ "levelclearflags", "Level Clear Flags" },
+			{ "deathzone", "Death Zones" },
+			{ "skyboxscale", "Skybox Scale" },
+			{ "stageselectlist", "Stage Select List" },
+			{ "levelrankscores", "Level Rank Scores" },
+			{ "levelranktimes", "Level Rank Times" },
+			{ "endpos", "End Positions" },
+			{ "animationlist", "Animation List" },
 			{ "levelpathlist", "Path List" },
 			{ "stagelightdatalist", "Stage Light Data List" }
-        };
+		};
 
-		static readonly Dictionary<string, string> DLLTypeMap = new Dictionary<string, string>() 
+		static readonly Dictionary<string, string> DLLTypeMap = new Dictionary<string, string>()
 		{
 			{ "landtable", "LandTable *" },
 			{ "landtablearray", "LandTable **" },
@@ -70,75 +70,92 @@ namespace ModGenerator
 		#endregion
 
 		public ModBuilder()
-        {
-            InitializeComponent();
-        }
+		{
+			InitializeComponent();
+		}
 
-        DataMapping exeData;
+		DataMapping exeData;
 		List<DllIniData> dllIniFiles;
 		Game gameType;
-        string gameFolder;
-        string projectName;
+		string gameFolder;
+		string projectName;
 		string projectFolder;
 
-        private void MainForm_Load(object sender, EventArgs e)
-        {
-            Settings = Properties.Settings.Default;
+		private void MainForm_Load(object sender, EventArgs e)
+		{
+			Settings = Properties.Settings.Default;
 
-            sA2ToolStripMenuItem.Checked = !Settings.ModBuilderSADX;
-            sADXToolStripMenuItem.Checked = Settings.ModBuilderSADX;
+			sA2ToolStripMenuItem.Checked = !Settings.ModBuilderSADX;
+			sADXToolStripMenuItem.Checked = Settings.ModBuilderSADX;
 
 			dllIniFiles = new List<DllIniData>();
+		}
 
-            SetGameFolder();
-        }
+		private void ModBuilder_Shown(object sender, EventArgs e)
+		{
+			SetGameFolder();
+		}
 
-        private void openToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            using (OpenFileDialog a = new OpenFileDialog()
-            {
-                DefaultExt = "ini",
-                Filter = "INI Files|*.ini|All Files|*.*"
-            })
-                if (a.ShowDialog(this) == DialogResult.OK)
-                    LoadExeDataMapping(a.FileName);
-        }
+		private void openToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			using (OpenFileDialog a = new OpenFileDialog()
+			{
+				DefaultExt = "ini",
+				Filter = "INI Files|*.ini|All Files|*.*"
+			})
+				if (a.ShowDialog(this) == DialogResult.OK)
+					LoadExeDataMapping(a.FileName);
+		}
 
-        private void PickProject()
-        {
-            using (SonicRetro.SAModel.SAEditorCommon.UI.ProjectSelector projectSelector = new SonicRetro.SAModel.SAEditorCommon.UI.ProjectSelector(gameFolder))
-            {
-                if (projectSelector.NoProjects)
-                {
-                    MessageBox.Show("No projects found. You can create a new project in the Mod Generator main menu, by clicking the \"Start a new project\" button.");
-                    return;
-                }
-                else
-                {
-                    projectSelector.ShowDialog();
-                    projectName = projectSelector.SelectedProjectName;
-                    projectFolder = projectSelector.SelectedProjectPath;
-                }
-            }
+		private void PickProject()
+		{
+			using (ProjectSelector projectSelector = new ProjectSelector(gameFolder))
+			{
+				if (projectSelector.NoProjects)
+				{
+					MessageBox.Show("No projects found. You can create a new project in the Mod Generator main menu, by clicking the \"Start a new project\" button.");
+					return;
+				}
+				else
+				{
+					projectSelector.ShowDialog();
+					projectName = projectSelector.SelectedProjectName;
+					projectFolder = projectSelector.SelectedProjectPath;
+				}
+			}
 
 			// Load mod info
-			ModManagement.ModProfile modProfile = new ModProfile(string.Concat(projectFolder, "\\mod.ini"));
+			ModProfile modProfile = new ModProfile(Path.Combine(projectFolder, "mod.ini"));
 			gameType = ModManagement.ModManagement.GameFromString(modProfile.Game); // todo: rectify this with MainForm_Load's game type checkboxes
 
-            // add all the files from the DataMappings folder
-            string dataMappingsFolder = string.Concat(projectFolder, "\\DataMappings\\");
+			// add all the files from the DataMappings folder
+			string dataMappingsFolder = Path.Combine(projectFolder, "DataMappings");
+			string[] dataMappingFiles = Directory.GetFiles(dataMappingsFolder, "*.ini");
 
-            string[] dataMappingFiles = Directory.GetFiles(dataMappingsFolder, "*.ini");
+			using (ProgressDialog progress = new ProgressDialog("Loading data mappings...", dataMappingFiles.Length))
+			{
+				progress.SetTask("Loading data mapping:");
+				progress.Show(this);
+				progress.Update();
 
-            foreach(string iniFile in dataMappingFiles)
-            {
-                if (Path.GetFileName(iniFile) == "sonic_data.ini") LoadExeDataMapping(iniFile);
-                else // load our dll mapping
+				foreach (string iniFile in dataMappingFiles)
 				{
-					LoadDLLDataMapping(iniFile);
+					progress.SetStep(iniFile.Replace(projectFolder, string.Empty));
+
+					if (Path.GetFileName(iniFile) == "sonic_data.ini")
+					{
+						LoadExeDataMapping(iniFile);
+					}
+					else // load our dll mapping
+					{
+						LoadDLLDataMapping(iniFile);
+					}
+
+					progress.StepProgress();
+					progress.Update();
 				}
-            }
-        }
+			}
+		}
 
 		#region Loading Data Mappings
 		private void LoadDLLDataMapping(string filename)
@@ -161,81 +178,81 @@ namespace ModGenerator
 		}
 
 		private void LoadExeDataMapping(string filename)
-        {
-            exeData = IniSerializer.Deserialize<DataMapping>(filename);
+		{
+			exeData = IniSerializer.Deserialize<DataMapping>(filename);
 
-            Environment.CurrentDirectory = Path.GetDirectoryName(filename);
+			Environment.CurrentDirectory = Path.GetDirectoryName(filename);
 
-            string groupName = Path.GetFileName(filename);
-            listView1.Groups.Add(groupName, groupName);
+			string groupName = Path.GetFileName(filename);
+			listView1.Groups.Add(groupName, groupName);
 
-            listView1.BeginUpdate();
-            foreach (KeyValuePair<string, SA_Tools.FileInfo> item in exeData.Files)
-            {
+			listView1.BeginUpdate();
+			foreach (KeyValuePair<string, SA_Tools.FileInfo> item in exeData.Files)
+			{
 				string projectRelativeFileLocation = Path.Combine(projectFolder, item.Value.Filename); // getting project-relative location
 
-                bool? modified = null;
-                switch (item.Value.Type)
-                {
-                    case "cutscenetext":
-                        {
-                            modified = false;
-                            string[] hashes = item.Value.MD5Hash.Split(',');
-                            for (int i = 0; i < 5; i++)
-                            {
-                                string textname = Path.Combine(projectRelativeFileLocation, ((Languages)i).ToString() + ".txt");
-                                if (HelperFunctions.FileHash(textname) != hashes[i])
-                                {
-                                    modified = true;
-                                    break;
-                                }
-                            }
-                        }
-                        break;
-                    case "recapscreen":
-                        {
-                            modified = false;
-                            int count = int.Parse(item.Value.CustomProperties["length"], NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
-                            string[] hash2 = item.Value.MD5Hash.Split(':');
-                            string[][] hashes = new string[hash2.Length][];
-                            for (int i = 0; i < hash2.Length; i++)
-                                hashes[i] = hash2[i].Split(',');
-                            for (int i = 0; i < count; i++)
-                                for (int l = 0; l < 5; l++)
-                                {
-                                    string textname = Path.Combine(Path.Combine(projectRelativeFileLocation, (i + 1).ToString(NumberFormatInfo.InvariantInfo)), ((Languages)l).ToString() + ".ini");
-                                    if (HelperFunctions.FileHash(textname) != hashes[i][l])
-                                    {
-                                        modified = true;
-                                        break;
-                                    }
-                                }
-                        }
-                        break;
-                    case "npctext":
-                        {
-                            modified = false;
-                            int count = int.Parse(item.Value.CustomProperties["length"], NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
-                            string[] hash2 = item.Value.MD5Hash.Split(':');
-                            string[][] hashes = new string[hash2.Length][];
-                            for (int i = 0; i < hash2.Length; i++)
-                                hashes[i] = hash2[i].Split(',');
-                            for (int l = 0; l < 5; l++)
-                                for (int i = 0; i < count; i++)
-                                {
-                                    string textname = Path.Combine(Path.Combine(projectRelativeFileLocation, (i + 1).ToString(NumberFormatInfo.InvariantInfo)), ((Languages)l).ToString() + ".ini");
-                                    if (HelperFunctions.FileHash(textname) != hashes[l][i])
-                                    {
-                                        modified = true;
-                                        break;
-                                    }
-                                }
-                        }
-                        break;
+				bool? modified = null;
+				switch (item.Value.Type)
+				{
+					case "cutscenetext":
+						{
+							modified = false;
+							string[] hashes = item.Value.MD5Hash.Split(',');
+							for (int i = 0; i < 5; i++)
+							{
+								string textname = Path.Combine(projectRelativeFileLocation, ((Languages)i).ToString() + ".txt");
+								if (HelperFunctions.FileHash(textname) != hashes[i])
+								{
+									modified = true;
+									break;
+								}
+							}
+						}
+						break;
+					case "recapscreen":
+						{
+							modified = false;
+							int count = int.Parse(item.Value.CustomProperties["length"], NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
+							string[] hash2 = item.Value.MD5Hash.Split(':');
+							string[][] hashes = new string[hash2.Length][];
+							for (int i = 0; i < hash2.Length; i++)
+								hashes[i] = hash2[i].Split(',');
+							for (int i = 0; i < count; i++)
+								for (int l = 0; l < 5; l++)
+								{
+									string textname = Path.Combine(Path.Combine(projectRelativeFileLocation, (i + 1).ToString(NumberFormatInfo.InvariantInfo)), ((Languages)l).ToString() + ".ini");
+									if (HelperFunctions.FileHash(textname) != hashes[i][l])
+									{
+										modified = true;
+										break;
+									}
+								}
+						}
+						break;
+					case "npctext":
+						{
+							modified = false;
+							int count = int.Parse(item.Value.CustomProperties["length"], NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
+							string[] hash2 = item.Value.MD5Hash.Split(':');
+							string[][] hashes = new string[hash2.Length][];
+							for (int i = 0; i < hash2.Length; i++)
+								hashes[i] = hash2[i].Split(',');
+							for (int l = 0; l < 5; l++)
+								for (int i = 0; i < count; i++)
+								{
+									string textname = Path.Combine(Path.Combine(projectRelativeFileLocation, (i + 1).ToString(NumberFormatInfo.InvariantInfo)), ((Languages)l).ToString() + ".ini");
+									if (HelperFunctions.FileHash(textname) != hashes[l][i])
+									{
+										modified = true;
+										break;
+									}
+								}
+						}
+						break;
 					case "deathzone":
-                        {
-                            modified = false;
-                            string[] hashes = item.Value.MD5Hash.Split(',');
+						{
+							modified = false;
+							string[] hashes = item.Value.MD5Hash.Split(',');
 							if (HelperFunctions.FileHash(projectRelativeFileLocation) != hashes[0])
 							{
 								modified = true;
@@ -249,8 +266,8 @@ namespace ModGenerator
 							}
 							string path = Path.GetDirectoryName(projectRelativeFileLocation);
 							for (int i = 0; i < flags.Length; i++)
-								if (HelperFunctions.FileHash(Path.Combine(path, i.ToString(NumberFormatInfo.InvariantInfo) + (exeData.Game == Game.SA2 || exeData.Game == Game.SA2B ? ".sa2mdl" : ".sa1mdl")))
-									!= hashes[i + 1])
+								if (HelperFunctions.FileHash(Path.Combine(path, i.ToString(NumberFormatInfo.InvariantInfo) + 
+									(exeData.Game == Game.SA2 || exeData.Game == Game.SA2B ? ".sa2mdl" : ".sa1mdl"))) != hashes[i + 1])
 								{
 									modified = true;
 									break;
@@ -310,62 +327,62 @@ namespace ModGenerator
 							}
 						}
 						break;
-                    default:
+					default:
 						if (!string.IsNullOrEmpty(item.Value.MD5Hash))
 							modified = HelperFunctions.FileHash(projectRelativeFileLocation) != item.Value.MD5Hash;
-                        break;
-                }
-                ListViewItem newItem = new ListViewItem(new[] { item.Key, DataTypeList[item.Value.Type], modified.HasValue ? (modified.Value ? "Yes" : "No") : "Unknown" }) { Checked = modified ?? true };
-                newItem.Group = listView1.Groups[groupName];
-                listView1.Items.Add(newItem);
-            }
-            listView1.EndUpdate();
-        }
+						break;
+				}
+				ListViewItem newItem = new ListViewItem(new[] { item.Key, DataTypeList[item.Value.Type], modified.HasValue ? (modified.Value ? "Yes" : "No") : "Unknown" })
+				{
+					Checked = modified ?? true,
+					Group = listView1.Groups[groupName]
+				};
+				listView1.Items.Add(newItem);
+			}
+			listView1.EndUpdate();
+		}
 		#endregion
 
 		private void exitToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Close();
-        }
+		{
+			Close();
+		}
 
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            Settings.Save();
-        }
+		private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+		{
+			Settings.Save();
+		}
 
-        private void CheckAll_Click(object sender, EventArgs e)
-        {
-            listView1.BeginUpdate();
-            foreach (ListViewItem item in listView1.Items)
-                item.Checked = true;
-            listView1.EndUpdate();
-        }
+		private void CheckAll_Click(object sender, EventArgs e)
+		{
+			listView1.BeginUpdate();
+			foreach (ListViewItem item in listView1.Items)
+				item.Checked = true;
+			listView1.EndUpdate();
+		}
 
-        private void CheckModified_Click(object sender, EventArgs e)
-        {
-            listView1.BeginUpdate();
-            foreach (ListViewItem item in listView1.Items)
-                item.Checked = item.SubItems[2].Text != "No";
-            listView1.EndUpdate();
-        }
+		private void CheckModified_Click(object sender, EventArgs e)
+		{
+			listView1.BeginUpdate();
+			foreach (ListViewItem item in listView1.Items)
+				item.Checked = item.SubItems[2].Text != "No";
+			listView1.EndUpdate();
+		}
 
-        private void UnCheckAll_Click(object sender, EventArgs e)
-        {
-            listView1.BeginUpdate();
-            foreach (ListViewItem item in listView1.Items)
-                item.Checked = false;
-            listView1.EndUpdate();
-        }
+		private void UnCheckAll_Click(object sender, EventArgs e)
+		{
+			listView1.BeginUpdate();
+			foreach (ListViewItem item in listView1.Items)
+				item.Checked = false;
+			listView1.EndUpdate();
+		}
 
 		private void EXEExportCPP(TextWriter writer, bool SA2)
 		{
 			writer.WriteLine("// Generated by SA Tools Struct Converter");
 			writer.WriteLine();
 			writer.WriteLine("#include \"stdafx.h\"");
-			if (SA2)
-				writer.WriteLine("#include \"SA2ModLoader.h\"");
-			else
-				writer.WriteLine("#include \"SADXModLoader.h\"");
+			writer.WriteLine(SA2 ? "#include \"SA2ModLoader.h\"" : "#include \"SADXModLoader.h\"");
 			writer.WriteLine();
 
 			Dictionary<uint, string> pointers = new Dictionary<uint, string>();
@@ -380,10 +397,12 @@ namespace ModGenerator
 						modelfmt = ModelFormat.Basic;
 						landfmt = LandTableFormat.SA1;
 						break;
+
 					case Game.SADX:
 						modelfmt = ModelFormat.BasicDX;
 						landfmt = LandTableFormat.SADX;
 						break;
+
 					case Game.SA2:
 					case Game.SA2B:
 						modelfmt = ModelFormat.Chunk;
@@ -392,6 +411,7 @@ namespace ModGenerator
 				}
 
 				Dictionary<string, string> models = new Dictionary<string, string>();
+				List<string> labels = new List<string>();
 				foreach (KeyValuePair<string, SA_Tools.FileInfo> item in exeData.Files.Where((a, i) => listView1.CheckedIndices.Contains(i)))
 				{
 					string name = item.Key.MakeIdentifier();
@@ -404,43 +424,64 @@ namespace ModGenerator
 						case "landtable":
 							LandTable tbl = LandTable.LoadFromFile(projectRelativeFileLocation);
 							name = tbl.Name;
-							writer.WriteLine(tbl.ToStructVariables(landfmt, new List<string>()));
+							writer.WriteLine(tbl.ToStructVariables(landfmt, labels));
+							labels.AddRange(tbl.GetLabels());
 							break;
+
 						case "model":
-							SonicRetro.SAModel.NJS_OBJECT mdl = new ModelFile(projectRelativeFileLocation).Model;
+							NJS_OBJECT mdl = new ModelFile(projectRelativeFileLocation).Model;
 							name = mdl.Name;
-							writer.WriteLine(mdl.ToStructVariables(modelfmt == ModelFormat.BasicDX, new List<string>()));
+							writer.WriteLine(mdl.ToStructVariables(modelfmt == ModelFormat.BasicDX, labels));
 							models.Add(item.Key, mdl.Name);
+							labels.AddRange(mdl.GetLabels());
 							break;
+
 						case "basicmodel":
-							mdl = new SonicRetro.SAModel.ModelFile(projectRelativeFileLocation).Model;
+							mdl = new ModelFile(projectRelativeFileLocation).Model;
 							name = mdl.Name;
-							writer.WriteLine(mdl.ToStructVariables(false, new List<string>()));
+							writer.WriteLine(mdl.ToStructVariables(false, labels));
 							models.Add(item.Key, mdl.Name);
+							labels.AddRange(mdl.GetLabels());
 							break;
+
 						case "basicdxmodel":
-							mdl = new SonicRetro.SAModel.ModelFile(projectRelativeFileLocation).Model;
+							mdl = new ModelFile(projectRelativeFileLocation).Model;
 							name = mdl.Name;
-							writer.WriteLine(mdl.ToStructVariables(true, new List<string>()));
+							writer.WriteLine(mdl.ToStructVariables(true, labels));
 							models.Add(item.Key, mdl.Name);
+							labels.AddRange(mdl.GetLabels());
 							break;
+
 						case "chunkmodel":
-							mdl = new SonicRetro.SAModel.ModelFile(projectRelativeFileLocation).Model;
+							mdl = new ModelFile(projectRelativeFileLocation).Model;
 							name = mdl.Name;
-							writer.WriteLine(mdl.ToStructVariables(false, new List<string>()));
+							writer.WriteLine(mdl.ToStructVariables(false, labels));
 							models.Add(item.Key, mdl.Name);
+							labels.AddRange(mdl.GetLabels());
 							break;
+
 						case "action":
 							Animation ani = Animation.Load(projectRelativeFileLocation);
 							name = "action_" + ani.Name.MakeIdentifier();
-							writer.WriteLine(ani.ToStructVariables());
-							writer.WriteLine("NJS_ACTION {0} = {{ &{1}, &{2} }};", name, models[data.CustomProperties["model"]], ani.Name.MakeIdentifier());
+							if (!labels.Contains(name))
+							{
+								writer.WriteLine(ani.ToStructVariables());
+								writer.WriteLine("NJS_ACTION {0} = {{ &{1}, &{2} }};", name, models[data.CustomProperties["model"]],
+									ani.Name.MakeIdentifier());
+								labels.Add(name);
+							}
 							break;
+
 						case "animation":
 							ani = Animation.Load(projectRelativeFileLocation);
 							name = ani.Name.MakeIdentifier();
-							writer.WriteLine(ani.ToStructVariables());
+							if (!labels.Contains(name))
+							{
+								writer.WriteLine(ani.ToStructVariables());
+								labels.Add(name);
+							}
 							break;
+
 						case "objlist":
 							{
 								ObjectListEntry[] list = ObjectList.Load(projectRelativeFileLocation, SA2);
@@ -452,8 +493,9 @@ namespace ModGenerator
 								writer.WriteLine("};");
 								writer.WriteLine();
 								writer.WriteLine("ObjectList {0} = {{ arraylengthandptr({0}_list) }};", name);
+								break;
 							}
-							break;
+
 						case "startpos":
 							if (SA2)
 							{
@@ -478,6 +520,7 @@ namespace ModGenerator
 								writer.WriteLine("};");
 							}
 							break;
+
 						case "texlist":
 							{
 								TextureListEntry[] list = TextureList.Load(projectRelativeFileLocation);
@@ -488,8 +531,9 @@ namespace ModGenerator
 								objs.Add("{ 0 }");
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "leveltexlist":
 							{
 								LevelTextureList list = LevelTextureList.Load(projectRelativeFileLocation);
@@ -501,8 +545,9 @@ namespace ModGenerator
 								writer.WriteLine("};");
 								writer.WriteLine();
 								writer.WriteLine("LevelPVMList {0} = {{ {1}, arraylengthandptr({0}_list) }};", name, list.Level.ToC());
+								break;
 							}
-							break;
+
 						case "triallevellist":
 							{
 								SA1LevelAct[] list = TrialLevelList.Load(projectRelativeFileLocation);
@@ -514,8 +559,9 @@ namespace ModGenerator
 								writer.WriteLine("};");
 								writer.WriteLine();
 								writer.WriteLine("TrialLevelList {0} = {{ arrayptrandlength({0}_list) }};", name);
+								break;
 							}
-							break;
+
 						case "bosslevellist":
 							{
 								SA1LevelAct[] list = BossLevelList.Load(projectRelativeFileLocation);
@@ -526,8 +572,9 @@ namespace ModGenerator
 								objs.Add("levelact(LevelIDs_Invalid, 0)");
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "fieldstartpos":
 							{
 								Dictionary<SA1LevelIDs, FieldStartPosInfo> list = FieldStartPosList.Load(projectRelativeFileLocation);
@@ -538,8 +585,9 @@ namespace ModGenerator
 								objs.Add("{ LevelIDs_Invalid }");
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "soundtestlist":
 							{
 								SoundTestListEntry[] list = SoundTestList.Load(projectRelativeFileLocation);
@@ -551,8 +599,9 @@ namespace ModGenerator
 								writer.WriteLine("};");
 								writer.WriteLine();
 								writer.WriteLine("SoundTestCategory {0} = {{ arrayptrandlength({0}_list) }};", name);
+								break;
 							}
-							break;
+
 						case "musiclist":
 							{
 								MusicListEntry[] list = MusicList.Load(projectRelativeFileLocation);
@@ -562,8 +611,9 @@ namespace ModGenerator
 									objs.Add(obj.ToStruct());
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "soundlist":
 							{
 								SoundListEntry[] list = SoundList.Load(projectRelativeFileLocation);
@@ -575,8 +625,9 @@ namespace ModGenerator
 								writer.WriteLine("};");
 								writer.WriteLine();
 								writer.WriteLine("SoundList {0} = {{ arraylengthandptr({0}_list) }};", name);
+								break;
 							}
-							break;
+
 						case "stringarray":
 							{
 								string[] strs = StringArray.Load(projectRelativeFileLocation);
@@ -589,8 +640,9 @@ namespace ModGenerator
 									objs.Add(obj.ToC(lang) + " " + obj.ToComment());
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "nextlevellist":
 							{
 								NextLevelListEntry[] list = NextLevelList.Load(projectRelativeFileLocation);
@@ -601,8 +653,9 @@ namespace ModGenerator
 								objs.Add("{ 0, -1 }");
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "cutscenetext":
 							{
 								CutsceneText texts = new CutsceneText(projectRelativeFileLocation);
@@ -618,8 +671,9 @@ namespace ModGenerator
 									pointers.Add(addr, string.Format("{0}_{1}", name, lang));
 									addr += 4;
 								}
+								break;
 							}
-							break;
+
 						case "recapscreen":
 							{
 								uint addr = (uint)(data.Address + imagebase);
@@ -640,7 +694,7 @@ namespace ModGenerator
 									{
 										RecapScreen scr = texts[j][l];
 										objs.Add(string.Format("{{ {0}, arraylengthandptr({1}_{2}_{3}_Text) }}",
-											SA_Tools.HelperFunctions.ToC(scr.Speed), name, (Languages)l, j));
+											HelperFunctions.ToC(scr.Speed), name, (Languages)l, j));
 									}
 									writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 									writer.WriteLine("};");
@@ -648,8 +702,9 @@ namespace ModGenerator
 									pointers.Add(addr, string.Format("{0}_{1}", name, (Languages)l));
 									addr += 4;
 								}
+								break;
 							}
-							break;
+
 						case "npctext":
 							{
 								NPCText[][] texts = NPCTextList.Load(projectRelativeFileLocation, int.Parse(data.CustomProperties["length"], NumberStyles.Integer, NumberFormatInfo.InvariantInfo));
@@ -749,8 +804,9 @@ namespace ModGenerator
 									pointers.Add(headaddr, string.Format("{0}_{1}", name, (Languages)l));
 									headaddr += 4;
 								}
+								break;
 							}
-							break;
+
 						case "levelclearflags":
 							{
 								LevelClearFlag[] list = LevelClearFlagList.Load(projectRelativeFileLocation);
@@ -761,8 +817,9 @@ namespace ModGenerator
 								objs.Add("{ -1 }");
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "deathzone":
 							{
 								DeathZoneFlags[] list = DeathZoneFlagsList.Load(projectRelativeFileLocation);
@@ -771,7 +828,7 @@ namespace ModGenerator
 								List<string> objs = new List<string>();
 								for (int j = 0; j < list.Length; j++)
 								{
-									SonicRetro.SAModel.NJS_OBJECT obj = new ModelFile(Path.Combine(path,
+									NJS_OBJECT obj = new ModelFile(Path.Combine(path,
 										j.ToString(NumberFormatInfo.InvariantInfo) + ".sa1mdl")).Model;
 									writer.WriteLine(obj.ToStructVariables(modelfmt == ModelFormat.BasicDX, objs));
 									mdls.Add(obj.Name);
@@ -783,8 +840,9 @@ namespace ModGenerator
 								objs.Add("{ 0 }");
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "skyboxscale":
 							{
 								uint headaddr = (uint)(data.Address + imagebase);
@@ -796,8 +854,9 @@ namespace ModGenerator
 									pointers.Add(headaddr, string.Format("{0}_{1}", name, j));
 									headaddr += 4;
 								}
+								break;
 							}
-							break;
+
 						case "stageselectlist":
 							{
 								StageSelectLevel[] list = StageSelectLevelList.Load(projectRelativeFileLocation);
@@ -807,8 +866,9 @@ namespace ModGenerator
 									objs.Add(obj.ToStruct());
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "levelrankscores":
 							{
 								Dictionary<SA2LevelIDs, LevelRankScores> list = LevelRankScoresList.Load(projectRelativeFileLocation);
@@ -819,8 +879,9 @@ namespace ModGenerator
 								objs.Add("{ LevelIDs_Invalid }");
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "levelranktimes":
 							{
 								Dictionary<SA2LevelIDs, LevelRankTimes> list = LevelRankTimesList.Load(projectRelativeFileLocation);
@@ -831,8 +892,9 @@ namespace ModGenerator
 								objs.Add("{ LevelIDs_Invalid }");
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "endpos":
 							{
 								Dictionary<SA2LevelIDs, SA2EndPosInfo> list = SA2EndPosList.Load(projectRelativeFileLocation);
@@ -843,8 +905,9 @@ namespace ModGenerator
 								objs.Add("{ LevelIDs_Invalid }");
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "animationlist":
 							{
 								SA2AnimationInfo[] list = SA2AnimationInfoList.Load(projectRelativeFileLocation);
@@ -854,8 +917,9 @@ namespace ModGenerator
 									objs.Add(obj.ToStruct());
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
 						case "levelpathlist":
 							{
 								List<SA1LevelAct> levels = new List<SA1LevelAct>();
@@ -895,8 +959,9 @@ namespace ModGenerator
 								writer.WriteLine("\t{ 0xFFFF }");
 								writer.WriteLine("};");
 								writer.WriteLine();
+								break;
 							}
-							break;
+
 						case "stagelightdatalist":
 							{
 								List<SA1StageLightData> list = SA1StageLightDataList.Load(projectRelativeFileLocation);
@@ -907,8 +972,11 @@ namespace ModGenerator
 								objs.Add("{ 0xFFu }");
 								writer.WriteLine("\t" + string.Join("," + Environment.NewLine + "\t", objs.ToArray()));
 								writer.WriteLine("};");
+								break;
 							}
-							break;
+
+						default:
+							throw new NotImplementedException("Unexpected value type");
 					}
 					writer.WriteLine();
 					if (data.PointerList != null && data.PointerList.Length > 0)
@@ -925,48 +993,48 @@ namespace ModGenerator
 			writer.WriteLine();
 		}
 
-        private void ExportOldCPP_Click(object sender, EventArgs e)
-        {
+		private void ExportOldCPP_Click(object sender, EventArgs e)
+		{
 			bool SA2 = ((gameType == Game.SA2) || (gameType == Game.SA2B));
-            using (SaveFileDialog fileDialog = new SaveFileDialog() { DefaultExt = "cpp", Filter = "C++ source files|*.cpp", InitialDirectory = Path.Combine(projectFolder, "src"), RestoreDirectory = true })
-            {
-                if (fileDialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    using (TextWriter writer = File.CreateText(fileDialog.FileName))
-                    {
-                        EXEExportCPP(writer, SA2);
-                        writer.WriteLine("extern \"C\" __declspec(dllexport) const ModInfo {0}ModInfo = {{ ModLoaderVer, NULL, NULL, 0, NULL, 0, NULL, 0, arrayptrandlength(pointers) }};", SA2 ? "SA2" : "SADX");
-                    }
-                }
-            }
-        }
+			using (SaveFileDialog fileDialog = new SaveFileDialog() { DefaultExt = "cpp", Filter = "C++ source files|*.cpp", InitialDirectory = Path.Combine(projectFolder, "src"), RestoreDirectory = true })
+			{
+				if (fileDialog.ShowDialog(this) == DialogResult.OK)
+				{
+					using (TextWriter writer = File.CreateText(fileDialog.FileName))
+					{
+						EXEExportCPP(writer, SA2);
+						writer.WriteLine("extern \"C\" __declspec(dllexport) const ModInfo {0}ModInfo = {{ ModLoaderVer, NULL, NULL, 0, NULL, 0, NULL, 0, arrayptrandlength(pointers) }};", SA2 ? "SA2" : "SADX");
+					}
+				}
+			}
+		}
 
 		private void ExportNewCPP_Click(object sender, EventArgs e)
 		{
 			bool SA2 = ((gameType == Game.SA2) || (gameType == Game.SA2B));
-            using (SaveFileDialog fileDialog = new SaveFileDialog() { DefaultExt = "cpp", Filter = "C++ source files|*.cpp", InitialDirectory = Path.Combine(projectFolder, "src"), RestoreDirectory = true })
-            {
-                if (fileDialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    using (TextWriter writer = File.CreateText(fileDialog.FileName))
-                    {
-                        EXEExportCPP(writer, SA2);
-                        writer.WriteLine("extern \"C\" __declspec(dllexport) const PointerList Pointers = { arrayptrandlength(pointers) };");
-                        writer.WriteLine();
-                        writer.WriteLine("extern \"C\" __declspec(dllexport) const ModInfo {0}ModInfo = {{ ModLoaderVer }};", SA2 ? "SA2" : "SADX");
-                    }
-                }
-            }
+			using (SaveFileDialog fileDialog = new SaveFileDialog() { DefaultExt = "cpp", Filter = "C++ source files|*.cpp", InitialDirectory = Path.Combine(projectFolder, "src"), RestoreDirectory = true })
+			{
+				if (fileDialog.ShowDialog(this) == DialogResult.OK)
+				{
+					using (TextWriter writer = File.CreateText(fileDialog.FileName))
+					{
+						EXEExportCPP(writer, SA2);
+						writer.WriteLine("extern \"C\" __declspec(dllexport) const PointerList Pointers = { arrayptrandlength(pointers) };");
+						writer.WriteLine();
+						writer.WriteLine("extern \"C\" __declspec(dllexport) const ModInfo {0}ModInfo = {{ ModLoaderVer }};", SA2 ? "SA2" : "SADX");
+					}
+				}
+			}
 		}
 
 		private void INIExport_Click(object sender, EventArgs e)
 		{
-            string destinationFolder = Path.Combine(Path.Combine(gameFolder, "mods"), projectName);
+			string destinationFolder = Path.Combine(Path.Combine(gameFolder, "mods"), projectName);
 
-            #region Generate our EXEData ini file
+			#region Generate our EXEData ini file
 			// get our list of strings from the listview box
 			List<string> files = new List<string>();
-			foreach(ListViewItem item in listView1.Items)
+			foreach (ListViewItem item in listView1.Items)
 			{
 				if (item.Checked) files.Add(item.Text);
 			}
@@ -974,140 +1042,201 @@ namespace ModGenerator
 			DataMapping output = ModManagement.ModManagement.ExeDataINIFromList(files, projectFolder, destinationFolder, exeData);
 
 			IniSerializer.Serialize(output, Path.Combine(destinationFolder, "exeData.ini")); // todo: put a copy of this in the project folder so that sadxlvl2 knows what to copy
-                                                                                            // for it's built-in 'test/play' feature*/
-            #endregion
+																							 // for it's built-in 'test/play' feature*/
+			#endregion
 
-            #region Add EXEData to mod.ini & copy to mod folder
-            string modIniFile = Path.Combine(projectFolder, "mod.ini");
-            StreamReader modReader = File.OpenText(modIniFile);
-            List<string> modINILines = new List<string>();
+			#region Add EXEData to mod.ini & copy to mod folder
+			string modIniFile = Path.Combine(projectFolder, "mod.ini");
+			StreamReader modReader = File.OpenText(modIniFile);
+			List<string> modINILines = new List<string>();
 
-            while(!modReader.EndOfStream)
-            {
-                modINILines.Add(modReader.ReadLine());
-            }
+			while (!modReader.EndOfStream)
+			{
+				modINILines.Add(modReader.ReadLine());
+			}
 
-            modReader.Close();
+			modReader.Close();
 
-            int lineIndex=0;
-            bool replaceLine = false;
-            bool addLine = true;
-            foreach(string line in modINILines)
-            {
-                if(line.ToLowerInvariant() == "EXEData=exeData.ini".ToLowerInvariant())
-                {
-                    addLine = false;
-                    replaceLine = false;
-                    break;
-                }
-                else
-                {
-                    string[] linesSplit = line.Split('=');
-                    if(linesSplit[0].ToLowerInvariant() == "EXEData".ToLowerInvariant())
-                    {
-                        replaceLine = true;
-                        addLine = false;
-                        lineIndex = modINILines.FindIndex(item => item == line);
-                        break;
-                    }
-                }
-            }
+			int lineIndex = 0;
+			bool replaceLine = false;
+			bool addLine = true;
+			foreach (string line in modINILines)
+			{
+				if (line.ToLowerInvariant() == "EXEData=exeData.ini".ToLowerInvariant())
+				{
+					addLine = false;
+					replaceLine = false;
+					break;
+				}
+				else
+				{
+					string[] linesSplit = line.Split('=');
+					if (linesSplit[0].ToLowerInvariant() == "EXEData".ToLowerInvariant())
+					{
+						replaceLine = true;
+						addLine = false;
+						lineIndex = modINILines.FindIndex(item => item == line);
+						break;
+					}
+				}
+			}
 
-            if (addLine) modINILines.Add("EXEData=exeData.ini");
-            else if (replaceLine) modINILines[lineIndex] = "EXEData=exeData.ini";
+			if (addLine) modINILines.Add("EXEData=exeData.ini");
+			else if (replaceLine) modINILines[lineIndex] = "EXEData=exeData.ini";
 
-            if(addLine || replaceLine) // we need to output our updated lines to the file
-            {
-                StreamWriter modWriter = new StreamWriter(modIniFile, false, Encoding.Default);
-                foreach (string line in modINILines) modWriter.WriteLine(line);
+			if (addLine || replaceLine) // we need to output our updated lines to the file
+			{
+				StreamWriter modWriter = new StreamWriter(modIniFile, false, Encoding.Default);
+				foreach (string line in modINILines) modWriter.WriteLine(line);
 
-                modWriter.Flush();
-                modWriter.Close();
-            }
+				modWriter.Flush();
+				modWriter.Close();
+			}
 
-            // copy mod.ini to mod folder
-            File.Copy(modIniFile, Path.Combine(destinationFolder, "mod.ini"), true);
-            #endregion
+			// copy mod.ini to mod folder
+			File.Copy(modIniFile, Path.Combine(destinationFolder, "mod.ini"), true);
+			#endregion
 
-            MessageBox.Show("Done!");
-        }
+			MessageBox.Show("Done!");
+		}
 
-        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            MessageBox.Show("This program allows you to convert split data into C code, that can be compiled into a DLL file for ModLoader.\nTo switch games, use the checkboxes in the File->Game menu.");
-        }
+		private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			MessageBox.Show("This program allows you to convert split data into C code, that can be compiled into a DLL file for ModLoader.\nTo switch games, use the checkboxes in the File->Game menu.");
+		}
 
-        private void sADXToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            sA2ToolStripMenuItem.CheckState = CheckState.Unchecked;
+		private void sADXToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			sA2ToolStripMenuItem.CheckState = CheckState.Unchecked;
 
-            // todo: switch our game mode, then bring up the projects pop-up so the user can select.
-            string errorMessage = "None supplied";
-            DialogResult lookForNewPath = System.Windows.Forms.DialogResult.None;
-            if (Properties.Settings.Default.SADXPath == "" || (!SonicRetro.SAModel.SAEditorCommon.UI.ProjectSelector.VerifyGamePath(SA_Tools.Game.SADX, Properties.Settings.Default.SADXPath, out errorMessage)))
-            {
-                // show an error message that the sadx path is invalid, ask for a new one.
-                lookForNewPath = MessageBox.Show(string.Format("The on-record SADX game directory doesn't appear to be valid because: {0}\nOK to supply one, Cancel to ignore.", errorMessage), "Directory Warning", MessageBoxButtons.OKCancel);
-                if (lookForNewPath == System.Windows.Forms.DialogResult.OK)
-                {
-                    if (folderBrowser.ShowDialog() == System.Windows.Forms.DialogResult.OK) Properties.Settings.Default.SADXPath = folderBrowser.SelectedPath;
-                }
-            }
+			// todo: switch our game mode, then bring up the projects pop-up so the user can select.
+			string errorMessage = "None supplied";
 
-            Properties.Settings.Default.ModBuilderSADX = true; 
+			if (Properties.Settings.Default.SADXPath == "" || (!ProjectSelector.VerifyGamePath(Game.SADX, Properties.Settings.Default.SADXPath, out errorMessage)))
+			{
+				// show an error message that the sadx path is invalid, ask for a new one.
+				DialogResult lookForNewPath = MessageBox.Show(string.Format("The on-record SADX game directory doesn't appear to be valid because: {0}\nOK to supply one, Cancel to ignore.", errorMessage), "Directory Warning", MessageBoxButtons.OKCancel);
+				if (lookForNewPath == DialogResult.OK)
+				{
+					if (folderBrowser.ShowDialog() == DialogResult.OK) Properties.Settings.Default.SADXPath = folderBrowser.SelectedPath;
+				}
+			}
 
-            Properties.Settings.Default.Save();
-            SetGameFolder();
-        }
+			Properties.Settings.Default.ModBuilderSADX = true;
 
-        private void sA2ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            sADXToolStripMenuItem.CheckState = CheckState.Unchecked;
+			Properties.Settings.Default.Save();
+			SetGameFolder();
+		}
 
-            // todo: switch our game mode, then bring up the projects pop-up so the user can select.
-            string errorMessage = "None supplied";
-            DialogResult lookForNewPath = System.Windows.Forms.DialogResult.None;
-            if (Properties.Settings.Default.SA2Path == "" || (!SonicRetro.SAModel.SAEditorCommon.UI.ProjectSelector.VerifyGamePath(SA_Tools.Game.SA2B, Properties.Settings.Default.SA2Path, out errorMessage)))
-            {
-                // show an error message that the sadx path is invalid, ask for a new one.
-                lookForNewPath = MessageBox.Show(string.Format("The on-record SA2PC game directory doesn't appear to be valid because: {0}\nOK to supply one, Cancel to ignore.", errorMessage), "Directory Warning", MessageBoxButtons.OKCancel);
-                if (lookForNewPath == System.Windows.Forms.DialogResult.OK)
-                {
-                    if (folderBrowser.ShowDialog() == System.Windows.Forms.DialogResult.OK) Properties.Settings.Default.SA2Path = folderBrowser.SelectedPath;
-                }
-            }
+		private void sA2ToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			sADXToolStripMenuItem.CheckState = CheckState.Unchecked;
 
-            Properties.Settings.Default.ModBuilderSADX = false; 
+			// todo: switch our game mode, then bring up the projects pop-up so the user can select.
+			string errorMessage = "None supplied";
 
-            Properties.Settings.Default.Save();
-            SetGameFolder();
-        }
+			if (Properties.Settings.Default.SA2Path == "" || (!ProjectSelector.VerifyGamePath(Game.SA2B, Properties.Settings.Default.SA2Path, out errorMessage)))
+			{
+				// show an error message that the sadx path is invalid, ask for a new one.
+				DialogResult lookForNewPath = MessageBox.Show(string.Format("The on-record SA2PC game directory doesn't appear to be valid because: {0}\nOK to supply one, Cancel to ignore.", errorMessage), "Directory Warning", MessageBoxButtons.OKCancel);
+				if (lookForNewPath == DialogResult.OK)
+				{
+					if (folderBrowser.ShowDialog() == DialogResult.OK) Properties.Settings.Default.SA2Path = folderBrowser.SelectedPath;
+				}
+			}
 
-        private void SetGameFolder()
-        {
-            if (sADXToolStripMenuItem.Checked) gameFolder = Properties.Settings.Default.SADXPath;
-            else if (sA2ToolStripMenuItem.Checked) gameFolder = Properties.Settings.Default.SA2Path;
+			Properties.Settings.Default.ModBuilderSADX = false;
 
-            PickProject();
-        }
+			Properties.Settings.Default.Save();
+			SetGameFolder();
+		}
 
-        private void projectToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            PickProject();
-        }
-    }
+		private void SetGameFolder()
+		{
+			if (sADXToolStripMenuItem.Checked) gameFolder = Properties.Settings.Default.SADXPath;
+			else if (sA2ToolStripMenuItem.Checked) gameFolder = Properties.Settings.Default.SA2Path;
 
-    static class Extensions
-    {
-        public static string MakeIdentifier(this string name)
-        {
-            StringBuilder result = new StringBuilder();
-            foreach (char item in name)
-                if ((item >= '0' & item <= '9') | (item >= 'A' & item <= 'Z') | (item >= 'a' & item <= 'z') | item == '_')
-                    result.Append(item);
-            if (result[0] >= '0' & result[0] <= '9')
-                result.Insert(0, '_');
-            return result.ToString();
-        }
-    }
+			PickProject();
+		}
+
+		private void projectToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			PickProject();
+		}
+	}
+
+	static class Extensions
+	{
+		public static string MakeIdentifier(this string name)
+		{
+			StringBuilder result = new StringBuilder();
+			foreach (char item in name)
+				if ((item >= '0' & item <= '9') | (item >= 'A' & item <= 'Z') | (item >= 'a' & item <= 'z') | item == '_')
+					result.Append(item);
+			if (result[0] >= '0' & result[0] <= '9')
+				result.Insert(0, '_');
+			return result.ToString();
+		}
+
+		internal static List<string> GetLabels(this LandTable land)
+		{
+			List<string> labels = new List<string>() { land.Name };
+			if (land.COLName != null)
+			{
+				labels.Add(land.COLName);
+				foreach (COL col in land.COL)
+					if (col.Model != null)
+						labels.AddRange(col.Model.GetLabels());
+			}
+			if (land.AnimName != null)
+			{
+				labels.Add(land.AnimName);
+				foreach (GeoAnimData gan in land.Anim)
+				{
+					if (gan.Model != null)
+						labels.AddRange(gan.Model.GetLabels());
+					if (gan.Animation != null)
+						labels.Add(gan.Animation.Name);
+				}
+			}
+			return labels;
+		}
+
+		internal static List<string> GetLabels(this NJS_OBJECT obj)
+		{
+			List<string> labels = new List<string>() { obj.Name };
+			if (obj.Attach != null)
+				labels.AddRange(obj.Attach.GetLabels());
+			if (obj.Children != null)
+				foreach (NJS_OBJECT o in obj.Children)
+					labels.AddRange(o.GetLabels());
+			return labels;
+		}
+
+		internal static List<string> GetLabels(this Attach att)
+		{
+			List<string> labels = new List<string>() { att.Name };
+			if (att is BasicAttach)
+			{
+				BasicAttach bas = (BasicAttach)att;
+				if (bas.VertexName != null)
+					labels.Add(bas.VertexName);
+				if (bas.NormalName != null)
+					labels.Add(bas.NormalName);
+				if (bas.MaterialName != null)
+					labels.Add(bas.MaterialName);
+				if (bas.MeshName != null)
+					labels.Add(bas.MeshName);
+			}
+			else if (att is ChunkAttach)
+			{
+				ChunkAttach cnk = (ChunkAttach)att;
+				if (cnk.VertexName != null)
+					labels.Add(cnk.VertexName);
+				if (cnk.PolyName != null)
+					labels.Add(cnk.PolyName);
+			}
+			return labels;
+		}
+	}
 }

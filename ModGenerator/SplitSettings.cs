@@ -1,10 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 
 namespace ModGenerator
@@ -74,17 +69,17 @@ namespace ModGenerator
                 if (numberOfChecks == 0)
                 {
                     DialogResult warningResult = MessageBox.Show("If you don't split any data, your mod will be restricted to overriding /system/ folder files and custom source-code mods.", "Warning", MessageBoxButtons.OKCancel);
-                    if (warningResult == System.Windows.Forms.DialogResult.OK) this.Close();
+                    if (warningResult == DialogResult.OK) Close();
                     return;
                 }
-                else this.Close();
+                else Close();
             }
             else if (SA2Options.Enabled)
             {
-                throw new System.NotImplementedException(); // todo: add SA2 support.
+                throw new NotImplementedException(); // todo: add SA2 support.
             }
 
-            this.Close(); // this shouldn't happen, but if it does, this is ok behavior.
+            Close(); // this shouldn't happen, but if it does, this is ok behavior.
         }
     }
 }
