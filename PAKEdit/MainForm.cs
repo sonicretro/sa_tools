@@ -41,23 +41,33 @@ namespace PAKEdit
 		private void GetTextures(string filename)
 		{
 			PAKFile pak = new PAKFile(filename);
+
 			string filenoext = Path.GetFileNameWithoutExtension(filename).ToLowerInvariant();
-			byte[] inf = pak.Files.Single((file) => file.Name.Equals(filenoext + '\\' + filenoext + ".inf", StringComparison.OrdinalIgnoreCase)).Data;
+			PAKFile.File inf_file = pak.Files.First((file) => file.Name.Equals(filenoext + '\\' + filenoext + ".inf", StringComparison.OrdinalIgnoreCase));
+            byte[] inf = inf_file.Data;
+			pak.Files.Remove(inf_file);
 			List<TextureInfo> newtextures = new List<TextureInfo>(inf.Length / 0x3C);
+
 			for (int i = 0; i < inf.Length; i += 0x3C)
 			{
 				StringBuilder sb = new StringBuilder(0x1C);
+
 				for (int j = 0; j < 0x1C; j++)
 					if (inf[i + j] != 0)
 						sb.Append((char)inf[i + j]);
 					else
 						break;
-				byte[] dds = pak.Files.Single((file) => file.Name.Equals(filenoext + '\\' + sb.ToString() + ".dds", StringComparison.OrdinalIgnoreCase)).Data;
+
+				PAKFile.File entry = pak.Files.First((file) => file.Name.Equals(filenoext + '\\' + sb.ToString() + ".dds", StringComparison.OrdinalIgnoreCase));
+                byte[] dds = entry.Data;
+				pak.Files.Remove(entry);				
+
 				using (MemoryStream str = new MemoryStream(dds))
 				using (Texture tex = TextureLoader.FromStream(d3ddevice, str))
 				using (Stream bmp = TextureLoader.SaveToStream(ImageFileFormat.Png, tex))
 					newtextures.Add(new TextureInfo(sb.ToString(), BitConverter.ToUInt32(inf, i + 0x1C), new Bitmap(bmp)));
 			}
+
 			textures.Clear();
 			textures.AddRange(newtextures);
 			listBox1.Items.Clear();
