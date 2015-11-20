@@ -10,6 +10,7 @@ using PAKLib;
 using SonicRetro.SAModel.Direct3D.TextureSystem;
 using SA_Tools;
 using System.Linq;
+using IniFile;
 
 namespace SA2StageSelEdit
 {

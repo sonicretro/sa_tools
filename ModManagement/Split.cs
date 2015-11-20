@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Linq;
 using SA_Tools;
 using SonicRetro.SAModel;
+using IniFile;
 
 namespace ModManagement
 {

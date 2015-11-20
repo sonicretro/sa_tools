@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using SA_Tools;
+using IniFile;
 
 namespace DLLModGenerator
 {

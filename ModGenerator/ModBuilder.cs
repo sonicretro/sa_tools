@@ -9,6 +9,7 @@ using SA_Tools;
 using SonicRetro.SAModel;
 using ModManagement;
 using SonicRetro.SAModel.SAEditorCommon.UI;
+using IniFile;
 
 namespace ModGenerator
 {

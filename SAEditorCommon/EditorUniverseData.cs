@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
 using SA_Tools;
+using IniFile;
 
 namespace SonicRetro.SAModel.SAEditorCommon
 {

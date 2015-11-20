@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Forms;
 using SA_Tools;
 using SonicRetro.SAModel;
+using IniFile;
 
 namespace DLLModGenerator
 {

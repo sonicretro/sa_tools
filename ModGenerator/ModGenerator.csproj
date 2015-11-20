@@ -160,6 +160,10 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\IniFile\IniFile.csproj">
+      <Project>{31c2c1d1-0840-4d9d-9335-0e2a4342b2b6}</Project>
+      <Name>IniFile</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ModManagement\ModManagement.csproj">
       <Project>{e87d5430-5b58-46f8-9326-504f1bff837c}</Project>
       <Name>ModManagement</Name>
