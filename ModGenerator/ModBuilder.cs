@@ -170,7 +170,8 @@ namespace ModGenerator
 			foreach (KeyValuePair<string, FileTypeHash> item in dataMapping.Files)
 			{
 				bool modified = HelperFunctions.FileHash(string.Concat(projectFolder, "\\", item.Key)) != item.Value.Hash;
-				listView1.Items.Add(new ListViewItem(new[] { item.Key, modified ? "Yes" : "No" }) { Checked = modified, Group = listView1.Groups[groupName] });
+				// I'm sure the type column should actually be useful. For now, you get a GUJJOBU.
+				listView1.Items.Add(new ListViewItem(new[] { item.Key, "GUJJOBU", modified ? "Yes" : "No" }) { Checked = modified, Group = listView1.Groups[groupName] });
 			}
 			listView1.EndUpdate();
 

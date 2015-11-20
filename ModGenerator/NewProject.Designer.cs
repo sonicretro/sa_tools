@@ -235,6 +235,8 @@
 			this.Controls.Add(this.GameDirectoryLabel);
 			this.Controls.Add(this.acceptButton);
 			this.Controls.Add(this.cancelButton);
+			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+			this.MaximizeBox = false;
 			this.Name = "NewProject";
 			this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
 			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
