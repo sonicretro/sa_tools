@@ -374,7 +374,7 @@ namespace SASave
             for (int i = 96; i < 111; i++)
                 ((EmblemControl)FindControl("emblem_" + i.ToInvariantString())).Checked = CurrentData.Emblems[i];
             if (adventure_character.SelectedIndex != -1)
-                adventure_emblem.Checked = CurrentData.Emblems[AdventureEmblemLives[adventure_character.SelectedIndex]];
+                adventure_emblem.Checked = CurrentData.Emblems[112 + AdventureEmblemLives[adventure_character.SelectedIndex]];
             for (int i = 118; i < 130; i++)
                 ((EmblemControl)FindControl("emblem_" + i.ToInvariantString())).Checked = CurrentData.Emblems[i];
         }
