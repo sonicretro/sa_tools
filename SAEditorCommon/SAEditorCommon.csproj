@@ -73,6 +73,12 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="UI\DisableableWarning.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\DisableableWarning.Designer.cs">
+      <DependentUpon>DisableableWarning.cs</DependentUpon>
+    </Compile>
     <Compile Include="UI\DuplicateTo.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -80,8 +86,16 @@
       <DependentUpon>DuplicateTo.cs</DependentUpon>
     </Compile>
     <Compile Include="UI\EditorItemSelection.cs" />
-    <Compile Include="UI\Gizmo.cs" />
-    <Compile Include="UI\PointHelper.cs" />
+    <Compile Include="UI\Gizmos\Gizmo.cs" />
+    <Compile Include="UI\Gizmos\ItemGizmo.cs" />
+    <Compile Include="UI\Gizmos\NJSObjectGizmo.cs" />
+    <Compile Include="UI\ModelLibrary.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\ModelLibrary.Designer.cs">
+      <DependentUpon>ModelLibrary.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Gizmos\PointHelper.cs" />
     <Compile Include="UI\ProgressDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -100,7 +114,7 @@
     <Compile Include="UI\SETDeleteType.Designer.cs">
       <DependentUpon>SETDeleteType.cs</DependentUpon>
     </Compile>
-    <Compile Include="UI\TransformGizmo.cs" />
+    <Compile Include="UI\Gizmos\TransformGizmo.cs" />
     <Compile Include="DataTypes\SETItem.cs" />
     <Compile Include="DataTypes\StartPosItem.cs" />
     <Compile Include="EditorOptions.cs" />
@@ -151,6 +165,9 @@
     <EmbeddedResource Include="UI\DefaultLightEditor.resx">
       <DependentUpon>DefaultLightEditor.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="UI\DisableableWarning.resx">
+      <DependentUpon>DisableableWarning.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="UI\DuplicateTo.resx">
       <DependentUpon>DuplicateTo.cs</DependentUpon>
     </EmbeddedResource>
@@ -166,6 +183,9 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\ModelLibrary.resx">
+      <DependentUpon>ModelLibrary.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="UI\ProgressDialog.resx">
       <DependentUpon>ProgressDialog.cs</DependentUpon>
@@ -184,6 +204,10 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\IniFile\IniFile.csproj">
+      <Project>{31c2c1d1-0840-4d9d-9335-0e2a4342b2b6}</Project>
+      <Name>IniFile</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SAModel.Direct3D\SAModel.Direct3D.csproj">
       <Project>{E81631CC-8721-425B-87A3-CB6199DECAF4}</Project>
       <Name>SAModel.Direct3D</Name>

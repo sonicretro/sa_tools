@@ -69,7 +69,6 @@
     <Compile Include="ModelFileDialog.Designer.cs">
       <DependentUpon>ModelFileDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="IniFile.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -78,6 +77,11 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="SA2MDLDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -96,6 +100,10 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\IniFile\IniFile.csproj">
+      <Project>{31c2c1d1-0840-4d9d-9335-0e2a4342b2b6}</Project>
+      <Name>IniFile</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SAEditorCommon\SAEditorCommon.csproj">
       <Project>{0D72870C-29A2-4B16-B016-2F2E266A0E64}</Project>
       <Name>SAEditorCommon</Name>
@@ -122,9 +130,25 @@
     <EmbeddedResource Include="ModelFileDialog.resx">
       <DependentUpon>ModelFileDialog.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Include="SA2MDLDialog.resx">
       <DependentUpon>SA2MDLDialog.cs</DependentUpon>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\RotateIcon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\ScaleIcon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\SelectIcon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\MoveIcon.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

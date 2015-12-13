@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Windows.Forms;
 using SA_Tools;
+using IniFile;
 
 namespace SADXTweaker2
 {

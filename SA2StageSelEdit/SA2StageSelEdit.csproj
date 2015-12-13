@@ -84,6 +84,10 @@
     <Content Include="stg_stagechr_sn.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\IniFile\IniFile.csproj">
+      <Project>{31c2c1d1-0840-4d9d-9335-0e2a4342b2b6}</Project>
+      <Name>IniFile</Name>
+    </ProjectReference>
     <ProjectReference Include="..\PAKLib\PAKLib.csproj">
       <Project>{29BD5A4F-1400-471C-BCFC-F1EE2A0EC73A}</Project>
       <Name>PAKLib</Name>

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using PAKLib;
+using IniFile;
 
 namespace PAKtool
 {
@@ -34,7 +35,7 @@ namespace PAKtool
 							File.WriteAllBytes(item.Name, item.Data);
 							list.Add(item.Name, new PAKInfo(item.LongPath));
 						}
-						IniFile.Serialize(list, Path.ChangeExtension(fn, "ini"));
+						IniSerializer.Serialize(list, Path.ChangeExtension(fn, "ini"));
 					}
 					catch (Exception ex) { Console.WriteLine(ex.ToString()); }
 					break;
@@ -43,7 +44,7 @@ namespace PAKtool
 					{
 						string fn = Path.Combine(Environment.CurrentDirectory, args[1]);
 						Environment.CurrentDirectory = Path.GetDirectoryName(fn);
-						Dictionary<string, PAKInfo> list = IniFile.Deserialize<Dictionary<string, PAKInfo>>(Path.ChangeExtension(fn, "ini"));
+						Dictionary<string, PAKInfo> list = IniSerializer.Deserialize<Dictionary<string, PAKInfo>>(Path.ChangeExtension(fn, "ini"));
 						PAKFile pak = new PAKFile();
 						foreach (KeyValuePair<string, PAKInfo> item in list)
 							pak.Files.Add(new PAKFile.File(item.Key, item.Value.LongPath, File.ReadAllBytes(item.Key)));

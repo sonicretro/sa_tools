@@ -5,6 +5,7 @@ using Microsoft.DirectX;
 using Microsoft.DirectX.Direct3D;
 using SonicRetro.SAModel.Direct3D;
 using SonicRetro.SAModel.SAEditorCommon.UI;
+using SonicRetro.SAModel.SAEditorCommon.UI.Gizmos;
 
 namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 {
@@ -111,6 +112,14 @@ namespace SonicRetro.SAModel.SAEditorCommon.DataTypes
 
 			pointHelperA = new PointHelper { BoxTexture = Gizmo.ATexture, DrawCube = true };
 			pointHelperB = new PointHelper { BoxTexture = Gizmo.BTexture, DrawCube = true };
+
+			pointHelperA.PointChanged += pointHelper_PointChanged;
+			pointHelperB.PointChanged += pointHelper_PointChanged;
+		}
+
+		static void pointHelper_PointChanged(PointHelper sender)
+		{
+			LevelData.InvalidateRenderState();
 		}
 		#endregion
 

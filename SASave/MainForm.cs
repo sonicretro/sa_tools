@@ -6,6 +6,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Linq;
+using IniFile;
 
 namespace SASave
 {
@@ -249,7 +250,7 @@ namespace SASave
             metal_level_select.SelectedIndex = 0;
             Dictionary<int, string> events;
             if (System.IO.File.Exists("Events.ini"))
-                events = IniFile.Deserialize<Dictionary<int, string>>("Events.ini");
+                events = IniSerializer.Deserialize<Dictionary<int, string>>("Events.ini");
             else
                 events = new Dictionary<int, string>();
             int i = 0;
@@ -311,7 +312,7 @@ namespace SASave
             events_big.EndUpdate();
             Dictionary<int, string> npcs;
             if (System.IO.File.Exists("NPCs.ini"))
-                npcs = IniFile.Deserialize<Dictionary<int, string>>("NPCs.ini");
+                npcs = IniSerializer.Deserialize<Dictionary<int, string>>("NPCs.ini");
             else
                 npcs = new Dictionary<int, string>();
             this.npcs.BeginUpdate();

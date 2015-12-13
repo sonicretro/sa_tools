@@ -10,6 +10,8 @@ using SonicRetro.SAModel.Direct3D;
 using SonicRetro.SAModel.Direct3D.TextureSystem;
 using SonicRetro.SAModel.SAEditorCommon;
 using SonicRetro.SAModel.SAEditorCommon.UI;
+using SonicRetro.SAModel.SAEditorCommon.UI.Gizmos;
+using IniFile;
 
 namespace SonicRetro.SAModel.SAMDL
 {
@@ -39,6 +41,16 @@ namespace SonicRetro.SAModel.SAMDL
 		EditorCamera cam = new EditorCamera(EditorOptions.RenderDrawDistance);
 		bool loaded;
 		int interval = 1;
+
+		#region Controls / Settings
+		bool lookKeyDown;
+		bool zoomKeyDown;
+
+		// TODO: Make these both configurable.
+		bool mouseWrapScreen = false;
+		ushort mouseWrapThreshold = 2;
+		#endregion
+
 		NJS_OBJECT model;
 		Animation[] animations;
 		Animation animation;
@@ -51,7 +63,9 @@ namespace SonicRetro.SAModel.SAMDL
 		BMPInfo[] TextureInfo;
 		Texture[] Textures;
 		ModelFileDialog modelinfo = new ModelFileDialog();
+		ModelLibrary modelLibrary;
 		NJS_OBJECT selectedObject;
+		NJSObjectGizmo transformGizmo;
 		Dictionary<NJS_OBJECT, TreeNode> nodeDict;
 
 		private void MainForm_Load(object sender, EventArgs e)
@@ -59,6 +73,11 @@ namespace SonicRetro.SAModel.SAMDL
 			SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.Opaque, true);
 			d3ddevice = new Device(0, DeviceType.Hardware, panel1.Handle, CreateFlags.HardwareVertexProcessing, new PresentParameters[] { new PresentParameters() { Windowed = true, SwapEffect = SwapEffect.Discard, EnableAutoDepthStencil = true, AutoDepthStencilFormat = DepthFormat.D24X8 } });
 			EditorOptions.Initialize(d3ddevice);
+			Gizmo.InitGizmo(d3ddevice);
+			transformGizmo = new NJSObjectGizmo();
+			modelLibrary = new ModelLibrary();
+			modelLibrary.InitRenderer();
+			modelLibrary.SelectionChanged += modelLibrary_SelectionChanged;
 			if (Program.Arguments.Length > 0)
 				LoadFile(Program.Arguments[0]);
 		}
@@ -188,14 +207,24 @@ namespace SonicRetro.SAModel.SAMDL
 			model.ProcessVertexData();
 			NJS_OBJECT[] models = model.GetObjects();
 			meshes = new Mesh[models.Length];
+
+			modelLibrary.BeginUpdate();
 			for (int i = 0; i < models.Length; i++)
+			{
 				if (models[i].Attach != null)
+				{
 					try { meshes[i] = models[i].Attach.CreateD3DMesh(d3ddevice); }
 					catch { }
+
+					modelLibrary.Add(models[i].Attach);
+				}
+			}
+			modelLibrary.EndUpdate();
+
 			treeView1.Nodes.Clear();
 			nodeDict = new Dictionary<NJS_OBJECT, TreeNode>();
 			AddTreeNode(model, treeView1.Nodes);
-			loaded = saveToolStripMenuItem.Enabled = exportToolStripMenuItem.Enabled = findToolStripMenuItem.Enabled = true;
+			loaded = saveToolStripMenuItem.Enabled = exportToolStripMenuItem.Enabled = importToolStripMenuItem.Enabled = findToolStripMenuItem.Enabled = true;
 			selectedObject = model;
 			SelectedItemChanged();
 		}
@@ -221,6 +250,8 @@ namespace SonicRetro.SAModel.SAMDL
 						e.Cancel = true;
 						break;
 				}
+
+			Properties.Settings.Default.Save();
 		}
 
 		private void saveToolStripMenuItem_Click(object sender, EventArgs e)
@@ -246,7 +277,7 @@ namespace SonicRetro.SAModel.SAMDL
 			Close();
 		}
 
-		internal void DrawLevel()
+		internal void DrawEntireModel()
 		{
 			if (!loaded) return;
 			d3ddevice.SetTransform(TransformType.Projection, Matrix.PerspectiveFovRH((float)(Math.PI / 4), panel1.Width / (float)panel1.Height, 1, cam.DrawDistance));
@@ -271,6 +302,12 @@ namespace SonicRetro.SAModel.SAMDL
 				DrawSelectedObject(model, transform);
 
 			d3ddevice.EndScene(); //all drawings before this line
+			d3ddevice.Present();
+
+			// draw helpers
+			transformGizmo.Draw(d3ddevice, cam);
+
+
 			d3ddevice.Present();
 		}
 
@@ -320,14 +357,17 @@ namespace SonicRetro.SAModel.SAMDL
 
 		private void panel1_Paint(object sender, PaintEventArgs e)
 		{
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void panel1_KeyDown(object sender, KeyEventArgs e)
 		{
 			if (!loaded) return;
+
+			#region Camera Hotkeys
 			if (cam.mode == 0)
 			{
+				#region Camera Motion Hotkeys
 				if (e.KeyCode == Keys.Down)
 					if (e.Shift)
 						cam.Position += cam.Up * -interval;
@@ -361,9 +401,11 @@ namespace SonicRetro.SAModel.SAMDL
 					cam.Pitch = 0;
 					cam.Yaw = 0;
 				}
+				#endregion
 			}
 			else
 			{
+				#region Camera Orbit Mode Hotkeys
 				if (e.KeyCode == Keys.Down)
 					if (e.Shift)
 						cam.Pitch = unchecked((ushort)(cam.Pitch - 0x100));
@@ -398,6 +440,7 @@ namespace SonicRetro.SAModel.SAMDL
 					cam.Pitch = 0;
 					cam.Yaw = 0;
 				}
+				#endregion
 			}
 			if (e.KeyCode == Keys.X)
 				cam.mode = (cam.mode + 1) % 2;
@@ -405,6 +448,9 @@ namespace SonicRetro.SAModel.SAMDL
 				interval += 1;
 			if (e.KeyCode == Keys.W)
 				interval -= 1;
+			#endregion
+
+			#region Animation Hotkeys
 			if (e.KeyCode == Keys.OemQuotes & animations != null)
 			{
 				animnum++;
@@ -437,12 +483,14 @@ namespace SonicRetro.SAModel.SAMDL
 			}
 			if (e.KeyCode == Keys.P & animation != null)
 				timer1.Enabled = !timer1.Enabled;
+			#endregion
+
 			if (e.KeyCode == Keys.N)
 				if (EditorOptions.RenderFillMode == FillMode.Solid)
 					EditorOptions.RenderFillMode = FillMode.Point;
 				else
 					EditorOptions.RenderFillMode++;
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void panel1_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
@@ -458,24 +506,109 @@ namespace SonicRetro.SAModel.SAMDL
 			}
 		}
 
-		Point lastmouse;
+		Point mouseLast;
 		private void Panel1_MouseMove(object sender, MouseEventArgs e)
 		{
 			if (!loaded) return;
-			Point evloc = e.Location;
-			if (lastmouse == Point.Empty)
+
+			Point mouseEventLocation = e.Location;
+			if (mouseLast == Point.Empty)
 			{
-				lastmouse = evloc;
+				mouseLast = mouseEventLocation;
 				return;
 			}
-			Point chg = evloc - (Size)lastmouse;
+
+			Point mouseDelta = mouseEventLocation - (Size)mouseLast;
+			bool performedWrap = false;
+
+			if (e.Button != MouseButtons.None)
+			{
+				Rectangle mouseBounds = (mouseWrapScreen) ? Screen.GetBounds(ClientRectangle) : panel1.RectangleToScreen(panel1.Bounds);
+
+				if (Cursor.Position.X < (mouseBounds.Left + mouseWrapThreshold))
+				{
+					Cursor.Position = new Point(mouseBounds.Right - mouseWrapThreshold, Cursor.Position.Y);
+					mouseEventLocation = new Point(mouseEventLocation.X + mouseBounds.Width - mouseWrapThreshold, mouseEventLocation.Y);
+					performedWrap = true;
+				}
+				else if (Cursor.Position.X > (mouseBounds.Right - mouseWrapThreshold))
+				{
+					Cursor.Position = new Point(mouseBounds.Left + mouseWrapThreshold, Cursor.Position.Y);
+					mouseEventLocation = new Point(mouseEventLocation.X - mouseBounds.Width + mouseWrapThreshold, mouseEventLocation.Y);
+					performedWrap = true;
+				}
+				if (Cursor.Position.Y < (mouseBounds.Top + mouseWrapThreshold))
+				{
+					Cursor.Position = new Point(Cursor.Position.X, mouseBounds.Bottom - mouseWrapThreshold);
+					mouseEventLocation = new Point(mouseEventLocation.X, mouseEventLocation.Y + mouseBounds.Height - mouseWrapThreshold);
+					performedWrap = true;
+				}
+				else if (Cursor.Position.Y > (mouseBounds.Bottom - mouseWrapThreshold))
+				{
+					Cursor.Position = new Point(Cursor.Position.X, mouseBounds.Top + mouseWrapThreshold);
+					mouseEventLocation = new Point(mouseEventLocation.X, mouseEventLocation.Y - mouseBounds.Height + mouseWrapThreshold);
+					performedWrap = true;
+				}
+			}
+
 			if (e.Button == MouseButtons.Middle)
 			{
-				cam.Yaw = unchecked((ushort)(cam.Yaw - chg.X * 0x10));
-				cam.Pitch = unchecked((ushort)(cam.Pitch - chg.Y * 0x10));
-				DrawLevel();
+				cam.Yaw = unchecked((ushort)(cam.Yaw - mouseDelta.X * 0x10));
+				cam.Pitch = unchecked((ushort)(cam.Pitch - mouseDelta.Y * 0x10));
+				DrawEntireModel();
 			}
-			lastmouse = evloc;
+			else if (e.Button == System.Windows.Forms.MouseButtons.Left)
+			{
+				transformGizmo.TransformAffected(mouseDelta.X / 2 * cam.MoveSpeed, mouseDelta.Y / 2 * cam.MoveSpeed, cam);
+			}
+			else if (e.Button == System.Windows.Forms.MouseButtons.None)
+			{
+				Vector3 mousepos = new Vector3(e.X, e.Y, 0);
+				Viewport viewport = d3ddevice.Viewport;
+				Matrix proj = d3ddevice.Transform.Projection;
+				Matrix view = d3ddevice.Transform.View;
+				Vector3 Near = mousepos;
+				Near.Z = 0;
+				Vector3 Far = Near;
+				Far.Z = -1;
+
+				GizmoSelectedAxes oldSelection = transformGizmo.SelectedAxes;
+				transformGizmo.SelectedAxes = transformGizmo.CheckHit(Near, Far, viewport, proj, view, cam);
+				if (oldSelection != transformGizmo.SelectedAxes)
+				{
+					transformGizmo.Draw(d3ddevice, cam);
+					d3ddevice.Present();
+				}
+			}
+			mouseLast = mouseEventLocation;
+		}
+
+		private void panel1_MouseDown(object sender, MouseEventArgs e)
+		{
+			if (!loaded) return;
+			if (transformGizmo.SelectedAxes != GizmoSelectedAxes.NONE) return; // mouse will tranform instead of select
+
+			HitResult dist;
+			Vector3 mousepos = new Vector3(e.X, e.Y, 0);
+			Viewport viewport = d3ddevice.Viewport;
+			Matrix proj = d3ddevice.Transform.Projection;
+			Matrix view = d3ddevice.Transform.View;
+			Vector3 Near, Far;
+			Near = mousepos;
+			Near.Z = 0;
+			Far = Near;
+			Far.Z = -1;
+			dist = model.CheckHit(Near, Far, viewport, proj, view, new MatrixStack(), meshes);
+			if (dist.IsHit)
+			{
+				selectedObject = dist.Model;
+				SelectedItemChanged();
+			}
+			else
+			{
+				selectedObject = null;
+				SelectedItemChanged();
+			}
 		}
 
 		private void loadTexturesToolStripMenuItem_Click(object sender, EventArgs e)
@@ -499,7 +632,87 @@ namespace SonicRetro.SAModel.SAMDL
 			if (animation == null) return;
 			animframe++;
 			if (animframe == animation.Frames) animframe = 0;
-			DrawLevel();
+			DrawEntireModel();
+		}
+
+		internal Type GetAttachType()
+		{
+			return outfmt == ModelFormat.Chunk ? typeof(ChunkAttach) : typeof(BasicAttach);
+		}
+
+		bool suppressTreeEvent;
+
+		internal void SelectedItemChanged()
+		{
+			// updating heirarchy view
+			suppressTreeEvent = true;
+			if (selectedObject != null) treeView1.SelectedNode = nodeDict[selectedObject];
+			else treeView1.SelectedNode = null;
+			suppressTreeEvent = false;
+
+			propertyGrid1.SelectedObject = selectedObject;
+			transformGizmo.SelectedObject = selectedObject;
+
+			if (selectedObject != null)
+			{
+				copyModelToolStripMenuItem.Enabled = (selectedObject.Attach != null);
+				editMaterialsToolStripMenuItem.Enabled = selectedObject.Attach is BasicAttach && TextureInfo != null;
+			}
+
+			pasteModelToolStripMenuItem.Enabled = Clipboard.ContainsData(GetAttachType().AssemblyQualifiedName);
+			DrawEntireModel();
+		}
+
+		#region Export Methods
+		private void objToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			SaveFileDialog a = new SaveFileDialog
+			{
+				DefaultExt = "obj",
+				Filter = "OBJ Files|*.obj"
+			};
+			if (a.ShowDialog() == DialogResult.OK)
+			{
+				using (StreamWriter objstream = new StreamWriter(a.FileName, false))
+				using (StreamWriter mtlstream = new StreamWriter(Path.ChangeExtension(a.FileName, "mtl"), false))
+				{
+					#region Material Exporting
+					string materialPrefix = model.Name;
+
+					objstream.WriteLine("mtllib " + Path.GetFileNameWithoutExtension(a.FileName) + ".mtl");
+
+					// This is admittedly not an accurate representation of the materials used in the model - HOWEVER, it makes the materials more managable in MAX
+					// So we're doing it this way. In the future we should come back and add an option to do it this way or the original way.
+					for (int texIndx = 0; texIndx < TextureInfo.Length; texIndx++)
+					{
+						mtlstream.WriteLine(String.Format("newmtl {0}_material_{1}", materialPrefix, texIndx));
+						mtlstream.WriteLine("Ka 1 1 1");
+						mtlstream.WriteLine("Kd 1 1 1");
+						mtlstream.WriteLine("Ks 0 0 0");
+						mtlstream.WriteLine("illum 1");
+
+						if (!string.IsNullOrEmpty(TextureInfo[texIndx].Name))
+						{
+							mtlstream.WriteLine("Map_Kd " + TextureInfo[texIndx].Name + ".png");
+
+							// save texture
+							string mypath = Path.GetDirectoryName(a.FileName);
+							TextureInfo[texIndx].Image.Save(Path.Combine(mypath, TextureInfo[texIndx].Name + ".png"));
+						}
+					}
+					#endregion
+
+					int totalVerts = 0;
+					int totalNorms = 0;
+					int totalUVs = 0;
+
+					bool errorFlag = false;
+
+					Direct3D.Extensions.WriteModelAsObj(objstream, model, materialPrefix, new MatrixStack(), ref totalVerts, ref totalNorms, ref totalUVs, ref errorFlag);
+
+					if (errorFlag) MessageBox.Show("Error(s) encountered during export. Inspect the output file for more details.");
+				}
+			}
 		}
 
 		private void colladaToolStripMenuItem_Click(object sender, EventArgs e)
@@ -576,96 +789,58 @@ namespace SonicRetro.SAModel.SAMDL
 					File.WriteAllText(sd.FileName, result.ToString());
 				}
 		}
+		#endregion
 
-		private void panel1_MouseDown(object sender, MouseEventArgs e)
+		#region Import Methods
+		private void objToolStripMenuItem1_Click(object sender, EventArgs e)
 		{
-			if (!loaded) return;
-			HitResult dist;
-			Vector3 mousepos = new Vector3(e.X, e.Y, 0);
-			Viewport viewport = d3ddevice.Viewport;
-			Matrix proj = d3ddevice.Transform.Projection;
-			Matrix view = d3ddevice.Transform.View;
-			Vector3 Near, Far;
-			Near = mousepos;
-			Near.Z = 0;
-			Far = Near;
-			Far.Z = -1;
-			dist = model.CheckHit(Near, Far, viewport, proj, view, new MatrixStack(), meshes);
-			if (dist.IsHit)
+			if(Properties.Settings.Default.ShowImportWarning)
 			{
-				selectedObject = dist.Model;
-				SelectedItemChanged();
+				DisableableWarning warning = new DisableableWarning();
+				warning.Text = "Import Note";
+				warning.MainTextLabel.Text = string.Format("NOTE: This import feature will import to the Model Library. The imported model(s) will not immediatly show up in the scene.\nYou can add them to the scene by selecting an object from the heirarchy, then selecting a model from the Model Library.");
+				DialogResult result = warning.ShowDialog();
+
+				Properties.Settings.Default.ShowImportWarning = warning.EnableCheckBox.Checked;
+
+				if (result == System.Windows.Forms.DialogResult.Cancel) return;
 			}
-		}
 
-		internal Type GetAttachType()
-		{
-			return outfmt == ModelFormat.Chunk ? typeof(ChunkAttach) : typeof(BasicAttach);
-		}
-
-		bool suppressTreeEvent;
-		internal void SelectedItemChanged()
-		{
-			suppressTreeEvent = true;
-			treeView1.SelectedNode = nodeDict[selectedObject];
-			suppressTreeEvent = false;
-			propertyGrid1.SelectedObject = selectedObject;
-			copyModelToolStripMenuItem.Enabled = selectedObject.Attach != null;
-			pasteModelToolStripMenuItem.Enabled = Clipboard.ContainsData(GetAttachType().AssemblyQualifiedName);
-			editMaterialsToolStripMenuItem.Enabled = selectedObject.Attach is BasicAttach && TextureInfo != null;
-			DrawLevel();
-		}
-
-		private void objToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-			SaveFileDialog a = new SaveFileDialog
+			if(importObjDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
-				DefaultExt = "obj",
-				Filter = "OBJ Files|*.obj"
-			};
-			if (a.ShowDialog() == DialogResult.OK)
-			{
-				using (StreamWriter objstream = new StreamWriter(a.FileName, false))
-				using (StreamWriter mtlstream = new StreamWriter(Path.ChangeExtension(a.FileName, "mtl"), false))
+				string[] filePaths;
+				filePaths = importObjDialog.FileNames;
+
+				modelLibrary.BeginUpdate();
+				foreach(string filePath in filePaths)
 				{
-					#region Material Exporting
-					string materialPrefix = model.Name;
+					Attach importAttach = Direct3D.Extensions.obj2nj(filePath);
+					modelLibrary.Add(importAttach);
+				}
+				modelLibrary.EndUpdate();
 
-					objstream.WriteLine("mtllib " + Path.GetFileNameWithoutExtension(a.FileName) + ".mtl");
-
-					// This is admittedly not an accurate representation of the materials used in the model - HOWEVER, it makes the materials more managable in MAX
-					// So we're doing it this way. In the future we should come back and add an option to do it this way or the original way.
-					for (int texIndx = 0; texIndx < TextureInfo.Length; texIndx++)
-					{
-						mtlstream.WriteLine(String.Format("newmtl {0}_material_{1}", materialPrefix, texIndx));
-						mtlstream.WriteLine("Ka 1 1 1");
-						mtlstream.WriteLine("Kd 1 1 1");
-						mtlstream.WriteLine("Ks 0 0 0");
-						mtlstream.WriteLine("illum 1");
-
-						if (!string.IsNullOrEmpty(TextureInfo[texIndx].Name))
-						{
-							mtlstream.WriteLine("Map_Kd " + TextureInfo[texIndx].Name + ".png");
-
-							// save texture
-							string mypath = Path.GetDirectoryName(a.FileName);
-							TextureInfo[texIndx].Image.Save(Path.Combine(mypath, TextureInfo[texIndx].Name + ".png"));
-						}
-					}
-					#endregion
-
-					int totalVerts = 0;
-					int totalNorms = 0;
-					int totalUVs = 0;
-
-					bool errorFlag = false;
-
-					Direct3D.Extensions.WriteModelAsObj(objstream, model, materialPrefix, new MatrixStack(), ref totalVerts, ref totalNorms, ref totalUVs, ref errorFlag);
-
-					if (errorFlag) MessageBox.Show("Error(s) encountered during export. Inspect the output file for more details.");
+				if (!modelLibrary.Visible)
+				{
+					modelLibrary.Show();
+					modelLibrary.BringToFront();
 				}
 			}
 		}
+
+		private void sa1mdlToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			if (importSA1MdlDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+			{
+				throw new System.NotImplementedException();
+
+				if (!modelLibrary.Visible)
+				{
+					modelLibrary.Show();
+					modelLibrary.BringToFront();
+				}
+			}
+		}
+		#endregion
 
 		private void copyModelToolStripMenuItem_Click(object sender, EventArgs e)
 		{
@@ -704,21 +879,21 @@ namespace SonicRetro.SAModel.SAMDL
 			NJS_OBJECT[] models = model.GetObjects();
 			try { meshes[Array.IndexOf(models, selectedObject)] = attach.CreateD3DMesh(d3ddevice); }
 			catch { }
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void editMaterialsToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			using (MaterialEditor dlg = new MaterialEditor(((BasicAttach)selectedObject.Attach).Material, TextureInfo))
 			{
-				dlg.FormUpdated += (s, ev) => DrawLevel();
+				dlg.FormUpdated += (s, ev) => DrawEntireModel();
 				dlg.ShowDialog(this);
 			}
 		}
 
 		private void propertyGrid1_PropertyValueChanged(object s, PropertyValueChangedEventArgs e)
 		{
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
@@ -730,7 +905,7 @@ namespace SonicRetro.SAModel.SAMDL
 
 		private void primitiveRenderToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void preferencesToolStripMenuItem_Click(object sender, EventArgs e)
@@ -742,7 +917,7 @@ namespace SonicRetro.SAModel.SAMDL
 
 		void optionsEditor_FormUpdated()
 		{
-			DrawLevel();
+			DrawEntireModel();
 		}
 
 		private void findToolStripMenuItem_Click(object sender, EventArgs e)
@@ -760,5 +935,102 @@ namespace SonicRetro.SAModel.SAMDL
 						MessageBox.Show(this, "Not found.", "SAMDL");
 				}
 		}
+
+		private void modelLibraryToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			modelLibrary.Show();
+		}
+
+		void modelLibrary_SelectionChanged(ModelLibrary sender, int selectionIndex, Attach selectedModel)
+		{
+			if ((selectionIndex >= 0) && (selectedModel != null))
+			{
+				selectedObject.Attach = selectedModel;
+				selectedObject.Attach.ProcessVertexData();
+				NJS_OBJECT[] models = model.GetObjects();
+				try { meshes[Array.IndexOf(models, selectedObject)] = selectedObject.Attach.CreateD3DMesh(d3ddevice); }
+				catch { }
+				DrawEntireModel();
+			}
+		}
+
+		#region Gizmo Button Event Methods
+		private void selectModeButton_Click(object sender, EventArgs e)
+		{
+			if (transformGizmo != null)
+			{
+				transformGizmo.Mode = TransformMode.NONE;
+				gizmoSpaceComboBox.Enabled = true;
+				moveModeButton.Checked = false;
+				rotateModeButton.Checked = false;
+				DrawEntireModel(); // TODO: possibly find a better way of doing this than re-drawing the entire scene? Possibly keep a copy of the last render w/o gizmo in memory?
+			}
+		}
+
+		private void moveModeButton_Click(object sender, EventArgs e)
+		{
+			if (transformGizmo != null)
+			{
+				transformGizmo.Mode = TransformMode.TRANFORM_MOVE;
+				gizmoSpaceComboBox.Enabled = true;
+				pivotComboBox.Enabled = true;
+				selectModeButton.Checked = false;
+				rotateModeButton.Checked = false;
+				scaleModeButton.Checked = false;
+				DrawEntireModel();
+			}
+		}
+
+		private void rotateModeButton_Click(object sender, EventArgs e)
+		{
+			if (transformGizmo != null)
+			{
+				transformGizmo.Mode = TransformMode.TRANSFORM_ROTATE;
+				transformGizmo.LocalTransform = true;
+				transformGizmo.Pivot = Pivot.Origin;
+				gizmoSpaceComboBox.SelectedIndex = 1;
+				gizmoSpaceComboBox.Enabled = false;
+				pivotComboBox.SelectedIndex = 1;
+				pivotComboBox.Enabled = false;
+				selectModeButton.Checked = false;
+				moveModeButton.Checked = false;
+				scaleModeButton.Checked = false;
+				DrawEntireModel();
+			}
+		}
+
+		private void gizmoSpaceComboBox_DropDownClosed(object sender, EventArgs e)
+		{
+			if (transformGizmo != null)
+			{
+				transformGizmo.LocalTransform = (gizmoSpaceComboBox.SelectedIndex != 0);
+				DrawEntireModel();
+			}
+		}
+
+		private void scaleModeButton_Click(object sender, EventArgs e)
+		{
+			if (transformGizmo != null)
+			{
+				transformGizmo.Mode = TransformMode.TRANSFORM_SCALE;
+				transformGizmo.LocalTransform = true;
+				gizmoSpaceComboBox.SelectedIndex = 1;
+				gizmoSpaceComboBox.Enabled = false;
+				pivotComboBox.Enabled = true; // todo: depending on context, some pivots might not be valid. Look into this.
+				selectModeButton.Checked = false;
+				moveModeButton.Checked = false;
+				DrawEntireModel();
+			}
+		}
+
+		private void pivotComboBox_DropDownClosed(object sender, EventArgs e)
+		{
+			if (transformGizmo != null)
+			{
+				transformGizmo.Pivot = (pivotComboBox.SelectedIndex != 0) ? Pivot.Origin : Pivot.CenterOfMass;
+				DrawEntireModel();
+			}
+		}
+		#endregion
 	}
 }

@@ -11,6 +11,7 @@ using System.Windows.Forms;
 using Microsoft.DirectX;
 using Microsoft.DirectX.Direct3D;
 using SA_Tools;
+using IniFile;
 using SonicRetro.SAModel.Direct3D;
 using SonicRetro.SAModel.Direct3D.TextureSystem;
 
@@ -18,6 +19,7 @@ using SonicRetro.SAModel.SAEditorCommon;
 using SonicRetro.SAModel.SAEditorCommon.DataTypes;
 using SonicRetro.SAModel.SAEditorCommon.SETEditing;
 using SonicRetro.SAModel.SAEditorCommon.UI;
+using SonicRetro.SAModel.SAEditorCommon.UI.Gizmos;
 
 namespace SonicRetro.SAModel.SADXLVL2
 {
@@ -50,6 +52,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 		/// <summary>A viewer that shows all the locals of this class. Useful for knowing what you've got loaded.</summary>
 		UI.EditorDataViewer dataViewer;
 		StreamWriter editorLogStream;
+		Mesh boundsMesh;
 		#endregion
 
 		#region Level and Project Variables
@@ -88,7 +91,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 		#endregion
 
 		// helpers / ui stuff
-		TransformGizmo transformGizmo;
+		ItemGizmo transformGizmo;
 		EditorOptionsEditor optionsEditor;
 
 		private void MainForm_Load(object sender, EventArgs e)
@@ -106,6 +109,8 @@ namespace SonicRetro.SAModel.SADXLVL2
 			viewToolStripMenuItem.DropDownItems.Add(editorDebugItem);
 
 			dataViewer = new UI.EditorDataViewer(this);
+#else
+			viewToolStripMenuItem.DropDownItems.Remove(debugToolStripMenuItem);
 #endif
 
 			#region Settings Check / Recent Project Loading
@@ -129,7 +134,7 @@ namespace SonicRetro.SAModel.SADXLVL2
                 }
             }
 
-            SAEditorCommon.EditorOptions.GamePath = Properties.Settings.Default.GamePath;
+			EditorOptions.GamePath = Properties.Settings.Default.GamePath;
 
 			#region Recent Project Loading
 			if (Settings.RecentProject != "")
@@ -137,8 +142,8 @@ namespace SonicRetro.SAModel.SADXLVL2
                 string projectINIFile = string.Concat(Settings.GamePath, "\\projects\\", Settings.RecentProject, "\\sadxlvl.ini");
                 if(File.Exists(projectINIFile))
                 {
-                    SAEditorCommon.EditorOptions.ProjectPath = string.Concat(Settings.GamePath, "\\projects\\", Settings.RecentProject);
-                    SAEditorCommon.EditorOptions.ProjectName = Settings.RecentProject;
+					EditorOptions.ProjectPath = string.Concat(Settings.GamePath, "\\projects\\", Settings.RecentProject);
+					EditorOptions.ProjectName = Settings.RecentProject;
 
                     // open our current project.
                     this.Shown += LoadProject_Shown;
@@ -247,8 +252,8 @@ namespace SonicRetro.SAModel.SADXLVL2
                 }
 
                 string projectRelativeININame = string.Concat(projectSelector.SelectedProjectPath, "\\sadxlvl.ini");
-                SAEditorCommon.EditorOptions.ProjectName = projectSelector.SelectedProjectName;
-                SAEditorCommon.EditorOptions.ProjectPath = projectSelector.SelectedProjectPath;
+				EditorOptions.ProjectName = projectSelector.SelectedProjectName;
+				EditorOptions.ProjectPath = projectSelector.SelectedProjectPath;
 
                 // open our ini file
                 LoadINI(projectRelativeININame);
@@ -299,18 +304,18 @@ namespace SonicRetro.SAModel.SADXLVL2
 				stageLightList = SA1StageLightDataList.Load(stageLightPath);
 			}
 
-            Properties.Settings.Default.RecentProject = SAEditorCommon.EditorOptions.ProjectName;
+            Properties.Settings.Default.RecentProject = EditorOptions.ProjectName;
             Properties.Settings.Default.Save();
             Settings = Properties.Settings.Default;
 
 			// load our data mappings - these don't change so we can load them at startup.
-			sonicExeDataMapping = IniSerializer.Deserialize<DataMapping>(string.Concat(SAEditorCommon.EditorOptions.ProjectPath, "\\DataMappings\\sonic_data.ini"));
+			sonicExeDataMapping = IniSerializer.Deserialize<DataMapping>(string.Concat(EditorOptions.ProjectPath, "\\DataMappings\\sonic_data.ini"));
 
 			sadxDLLMappings = new ModManagement.DLLDataMapping[ModManagement.ModManagement.SADXSystemDLLFiles.Length];
 			for (int i = 0; i < ModManagement.ModManagement.SADXSystemDLLFiles.Length; i++)
 			{
 				sadxDLLMappings[i] = IniSerializer.Deserialize<ModManagement.DLLDataMapping>(
-					string.Concat(SAEditorCommon.EditorOptions.ProjectPath, string.Format("\\DataMappings\\{0}_data.ini", ModManagement.ModManagement.SADXSystemDLLFiles[i])));
+					string.Concat(EditorOptions.ProjectPath, string.Format("\\DataMappings\\{0}_data.ini", ModManagement.ModManagement.SADXSystemDLLFiles[i])));
 			}
 		}
 
@@ -559,8 +564,8 @@ namespace SonicRetro.SAModel.SADXLVL2
 				{
 					EditorLevelData level = ini.Levels[levelID];
 
-                    string sysFallbackPath = Path.Combine(SAEditorCommon.EditorOptions.GamePath, ini.SystemPath);
-                    string syspath = Path.Combine(SAEditorCommon.EditorOptions.ProjectPath, ini.SystemPath);
+                    string sysFallbackPath = Path.Combine(EditorOptions.GamePath, ini.SystemPath);
+                    string syspath = Path.Combine(EditorOptions.ProjectPath, ini.SystemPath);
 
 					levelact = new SA1LevelAct(level.LevelID);
 					//playtestStartInfo.LevelAct = levelact;
@@ -742,8 +747,8 @@ namespace SonicRetro.SAModel.SADXLVL2
 
                         // get our dll cache and objdefs folders, as well as the fallback locations if the mod doesn't specifically call for them.
                         string projectRelativeObjDefsFolder, projectRelativeDLLCacheFolder, fallbackObjDefsFolder, fallbackDLLCacheFolder;
-                        projectRelativeObjDefsFolder = string.Concat(SAEditorCommon.EditorOptions.ProjectPath, "\\objdefs\\");
-                        projectRelativeDLLCacheFolder = string.Concat(SAEditorCommon.EditorOptions.ProjectPath, "\\dllcache\\");
+                        projectRelativeObjDefsFolder = string.Concat(EditorOptions.ProjectPath, "\\objdefs\\");
+                        projectRelativeDLLCacheFolder = string.Concat(EditorOptions.ProjectPath, "\\dllcache\\");
                         fallbackObjDefsFolder = string.Concat(Settings.GamePath, "\\objdefs\\");
                         fallbackDLLCacheFolder = string.Concat(Settings.GamePath, "\\dllcache\\");
 
@@ -770,7 +775,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 								string codeType = defgroup.CodeType;
 
 								string codeFileRelative = defgroup.CodeFile.Replace('/', Path.DirectorySeparatorChar); // get our relative path to the code file, then the 
-                                string codeFileProject = Path.Combine(SAEditorCommon.EditorOptions.ProjectPath, codeFileRelative); // project relative
+                                string codeFileProject = Path.Combine(EditorOptions.ProjectPath, codeFileRelative); // project relative
                                 string codeFileFallback = Path.Combine(Settings.GamePath, codeFileRelative); // and game-folder relative versions
 
                                 // First we need to look for our project dll cache definition.
@@ -989,7 +994,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 						string dllfile = Path.Combine("dllcache", codeType + ".dll");
 						DateTime modDate = DateTime.MinValue;
 
-                        Environment.CurrentDirectory = SAEditorCommon.EditorOptions.ProjectPath; // we'll look in our project folder first.
+                        Environment.CurrentDirectory = EditorOptions.ProjectPath; // we'll look in our project folder first.
 
                         if (File.Exists(dllfile)) // look for our dll
                         {
@@ -1164,7 +1169,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 					progress.StepProgress();
 					#endregion
 
-					transformGizmo = new TransformGizmo();
+					transformGizmo = new ItemGizmo();
 
 					Invoke((Action)progress.Close);
 				}
@@ -1268,6 +1273,9 @@ namespace SonicRetro.SAModel.SADXLVL2
 			gizmoSpaceComboBox.Enabled = true;
 			gizmoSpaceComboBox.SelectedIndex = 0;
 
+			pivotComboBox.Enabled = true;
+			pivotComboBox.SelectedIndex = 0;
+
 			toolStrip1.Enabled = isStageLoaded;
 			LevelData_StateChanged();
 			changedSinceSave = false; // because the method call above will invalidate this, but we know that the user hasn't actually changed anything.
@@ -1320,7 +1328,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			Application.DoEvents();
 
 			EditorLevelData level = ini.Levels[levelID];
-            string syspath = Path.Combine(SAEditorCommon.EditorOptions.ProjectPath, ini.SystemPath);
+            string syspath = Path.Combine(EditorOptions.ProjectPath, ini.SystemPath);
             Environment.CurrentDirectory = EditorOptions.ProjectPath; // save everything to the project!
 
 			SA1LevelAct levelact = new SA1LevelAct(level.LevelID);
@@ -1618,6 +1626,28 @@ namespace SonicRetro.SAModel.SADXLVL2
 			{
 				foreach (CAMItem item in LevelData.CAMItems[LevelData.Character])
 					renderlist.AddRange(item.Render(d3ddevice, cam, transform));
+			}
+			#endregion
+
+			#region Debug Bounds Drawing
+			if (boundsToolStripMenuItem.Checked)
+			{
+				MatrixStack debugBoundsStack = new MatrixStack();
+				List<Item> selection = selectedItems.GetSelection();
+				debugBoundsStack.Push();
+				foreach (Item item in selection)
+				{
+					if (item is LevelItem)
+					{
+						LevelItem lvlItem = (LevelItem)item;
+						boundsMesh = Mesh.Sphere(d3ddevice, lvlItem.CollisionData.Bounds.Radius, 9, 9);
+
+						debugBoundsStack.NJTranslate(lvlItem.CollisionData.Bounds.Center);
+						RenderInfo info = new RenderInfo(boundsMesh, 0, debugBoundsStack.Top, CAMItem.Material, null, FillMode.Solid, item.Bounds);
+						renderlist.Add(info);
+					}
+				}
+				debugBoundsStack.Pop();
 			}
 			#endregion
 
@@ -1974,14 +2004,14 @@ namespace SonicRetro.SAModel.SADXLVL2
 			if (!isStageLoaded)
 				return;
 
-			Point mouseEvent = e.Location;
+			Point mouseEventLocation = e.Location;
 			if (mouseLast == Point.Empty)
 			{
-				mouseLast = mouseEvent;
+				mouseLast = mouseEventLocation;
 				return;
 			}
 
-			Point mouseDelta = mouseEvent - (Size)mouseLast;
+			Point mouseDelta = mouseEventLocation - (Size)mouseLast;
 			bool performedWrap = false;
 
 			if (e.Button != MouseButtons.None)
@@ -1991,25 +2021,25 @@ namespace SonicRetro.SAModel.SADXLVL2
 				if (Cursor.Position.X < (mouseBounds.Left + mouseWrapThreshold))
 				{
 					Cursor.Position = new Point(mouseBounds.Right - mouseWrapThreshold, Cursor.Position.Y);
-					mouseEvent = new Point(mouseEvent.X + mouseBounds.Width - mouseWrapThreshold, mouseEvent.Y);
+					mouseEventLocation = new Point(mouseEventLocation.X + mouseBounds.Width - mouseWrapThreshold, mouseEventLocation.Y);
 					performedWrap = true;
 				}
 				else if (Cursor.Position.X > (mouseBounds.Right - mouseWrapThreshold))
 				{
 					Cursor.Position = new Point(mouseBounds.Left + mouseWrapThreshold, Cursor.Position.Y);
-					mouseEvent = new Point(mouseEvent.X - mouseBounds.Width + mouseWrapThreshold, mouseEvent.Y);
+					mouseEventLocation = new Point(mouseEventLocation.X - mouseBounds.Width + mouseWrapThreshold, mouseEventLocation.Y);
 					performedWrap = true;
 				}
 				if (Cursor.Position.Y < (mouseBounds.Top + mouseWrapThreshold))
 				{
 					Cursor.Position = new Point(Cursor.Position.X, mouseBounds.Bottom - mouseWrapThreshold);
-					mouseEvent = new Point(mouseEvent.X, mouseEvent.Y + mouseBounds.Height - mouseWrapThreshold);
+					mouseEventLocation = new Point(mouseEventLocation.X, mouseEventLocation.Y + mouseBounds.Height - mouseWrapThreshold);
 					performedWrap = true;
 				}
 				else if (Cursor.Position.Y > (mouseBounds.Bottom - mouseWrapThreshold))
 				{
 					Cursor.Position = new Point(Cursor.Position.X, mouseBounds.Top + mouseWrapThreshold);
-					mouseEvent = new Point(mouseEvent.X, mouseEvent.Y - mouseBounds.Height + mouseWrapThreshold);
+					mouseEventLocation = new Point(mouseEventLocation.X, mouseEventLocation.Y - mouseBounds.Height + mouseWrapThreshold);
 					performedWrap = true;
 				}
 			}
@@ -2063,7 +2093,6 @@ namespace SonicRetro.SAModel.SADXLVL2
 					}
 
 					transformGizmo.TransformAffected(mouseDelta.X / 2 * cam.MoveSpeed, mouseDelta.Y / 2 * cam.MoveSpeed, cam);
-					DrawLevel();
 					break;
 
 				case MouseButtons.None:
@@ -2098,7 +2127,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 
 			if (performedWrap || Math.Abs(mouseDelta.X / 2) * cam.MoveSpeed > 0 || Math.Abs(mouseDelta.Y / 2) * cam.MoveSpeed > 0)
 			{
-				mouseLast = mouseEvent;
+				mouseLast = mouseEventLocation;
 				if (e.Button != MouseButtons.None && selectedItems.ItemCount > 0)
 					UpdatePropertyGrid();
 			}
@@ -2778,6 +2807,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			{
 				transformGizmo.Mode = TransformMode.TRANFORM_MOVE;
 				gizmoSpaceComboBox.Enabled = true;
+				pivotComboBox.Enabled = true;
 				selectModeButton.Checked = false;
 				rotateModeButton.Checked = false;
 				scaleModeButton.Checked = false;
@@ -2791,8 +2821,11 @@ namespace SonicRetro.SAModel.SADXLVL2
 			{
 				transformGizmo.Mode = TransformMode.TRANSFORM_ROTATE;
 				transformGizmo.LocalTransform = true;
+				transformGizmo.Pivot = Pivot.Origin;
 				gizmoSpaceComboBox.SelectedIndex = 1;
 				gizmoSpaceComboBox.Enabled = false;
+				pivotComboBox.SelectedIndex = 1;
+				pivotComboBox.Enabled = false;
 				selectModeButton.Checked = false;
 				moveModeButton.Checked = false;
 				scaleModeButton.Checked = false;
@@ -2817,8 +2850,18 @@ namespace SonicRetro.SAModel.SADXLVL2
 				transformGizmo.LocalTransform = true;
 				gizmoSpaceComboBox.SelectedIndex = 1;
 				gizmoSpaceComboBox.Enabled = false;
+				pivotComboBox.Enabled = true; // todo: depending on context, some pivots might not be valid. Look into this.
 				selectModeButton.Checked = false;
 				moveModeButton.Checked = false;
+				DrawLevel();
+			}
+		}
+
+		private void pivotComboBox_DropDownClosed(object sender, EventArgs e)
+		{
+			if(transformGizmo != null)
+			{
+				transformGizmo.Pivot = (pivotComboBox.SelectedIndex != 0) ? Pivot.Origin : Pivot.CenterOfMass;
 				DrawLevel();
 			}
 		}
@@ -2835,9 +2878,10 @@ namespace SonicRetro.SAModel.SADXLVL2
 		private void CopyUpdatedModFiles()
 		{
 			#region Load Mod Data Mappings
+			LogMessageLine("AutoBuild: Loading Mod Data Mappings");
 			// load the user's EXEData - we do have to get this and the user's DLLData files every time this is called, simply because 
 			// they might have changed since last time.
-			string exeDataInipath = Path.GetFullPath(Settings.GamePath + string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\exeData.ini"));
+			string exeDataInipath = Path.GetFullPath(Settings.GamePath + string.Concat("\\mods\\", EditorOptions.ProjectName, "\\exeData.ini"));
 			DataMapping modExeDataMapping = IniSerializer.Deserialize<DataMapping>(exeDataInipath); //todo: how do we handle this if the file doesn't yet exist?
 
 			bool hasChangedModExeMapping = false;
@@ -2848,7 +2892,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			ModManagement.DLLDataMapping[] modDLLDataMappings = new ModManagement.DLLDataMapping[ModManagement.ModManagement.SADXSystemDLLFiles.Length];
 			for (int i = 0; i < ModManagement.ModManagement.SADXSystemDLLFiles.Length; i++)
 			{
-				string modRelativePath = Path.GetFullPath(Settings.GamePath + string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\",
+				string modRelativePath = Path.GetFullPath(Settings.GamePath + string.Concat("\\mods\\", EditorOptions.ProjectName, "\\",
 					ModManagement.ModManagement.SADXSystemDLLFiles[i], "Data.ini"));
 
 				if (File.Exists(modRelativePath)) modDLLDataMappings[i] = IniSerializer.Deserialize<ModManagement.DLLDataMapping>(modRelativePath);
@@ -2856,9 +2900,11 @@ namespace SonicRetro.SAModel.SADXLVL2
 			}
 			#endregion
 
+			LogMessageLine("AutoBuild: Looping through changed files");
 			foreach (string file in changedFiles)
 			{
 				#region Type Identification
+				LogMessageLine(string.Format("AutoBuild: Identifying type of file: {0}", file));
 				ModManagement.ModManagement.DataSource fileDataSource = ModManagement.ModManagement.DataSource.EXEData; // this is our default option
 				string dllOutput = "";
 				string[] splitPath = file.Split('/');
@@ -2930,18 +2976,21 @@ namespace SonicRetro.SAModel.SADXLVL2
 				string projectFileLocation = string.Concat(EditorOptions.ProjectPath, "\\", file);
 				string modFileLocation = string.Concat(EditorOptions.GamePath, "\\mods\\", EditorOptions.ProjectName, "\\", file);
 
+				LogMessageLine(string.Format("AutoBuild: Finding file info for file {0}", file));
 				System.IO.FileInfo projectFileInfo = new System.IO.FileInfo(projectFileLocation);
 				System.IO.FileInfo modFileInfo = new System.IO.FileInfo(modFileLocation);
 
 				if(projectFileInfo.LastWriteTime != modFileInfo.LastWriteTime)
 				{
+					LogMessageLine(string.Format("AutoBuild: Trying to copy: {0}", file));
 					Directory.CreateDirectory(Path.GetDirectoryName(modFileLocation));
 					File.Copy(projectFileLocation, modFileLocation, true);
 				}
 				#endregion
 			}
 
-			string modIniFilePath = Settings.GamePath + string.Concat("\\mods\\", SAEditorCommon.EditorOptions.ProjectName, "\\") +	"mod.ini";
+			LogMessageLine("AutoBuild: Updating Mod Profile");
+			string modIniFilePath = Settings.GamePath + string.Concat("\\mods\\", EditorOptions.ProjectName, "\\") +	"mod.ini";
 			ModManagement.ModProfile modProfile = new ModManagement.ModProfile(modIniFilePath);
 
 			if(hasChangedModExeMapping)
@@ -2962,7 +3011,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			if(changedSinceSave) SaveStage(true);
 
             // save start info data so that it can be forwarded to modloader
-			string spawnInfoPath = string.Concat(SAEditorCommon.EditorOptions.GamePath, "\\Mods\\", "TestSpawn", "\\StartData.ini");
+			string spawnInfoPath = string.Concat(EditorOptions.GamePath, "\\Mods\\", "TestSpawn", "\\StartData.ini");
 
 			List<String> spawnInfo = new List<string>();
 			spawnInfo.Add(string.Format("level={0}", (byte)levelact.Level));
@@ -2970,20 +3019,20 @@ namespace SonicRetro.SAModel.SADXLVL2
 			spawnInfo.Add(string.Format("character={0}", LevelData.Character));
 
 			File.WriteAllLines(spawnInfoPath, spawnInfo.ToArray());
-				
+
             // Set our mods properly
-			string loaderIniPath = string.Concat(SAEditorCommon.EditorOptions.GamePath, "\\Mods\\SADXModLoader.ini");
+			string loaderIniPath = string.Concat(EditorOptions.GamePath, "\\Mods\\SADXModLoader.ini");
 			ModManagement.LoaderInfo loaderInfo = IniSerializer.Deserialize<ModManagement.LoaderInfo>(loaderIniPath);
 			int testSpawnIndex = -1;
 			int currentProjectIndex = -1;
 			testSpawnIndex = loaderInfo.Mods.FindIndex(item => item.ToLowerInvariant() == "TestSpawn".ToLowerInvariant());
-			currentProjectIndex = loaderInfo.Mods.FindIndex(item => item.ToLowerInvariant() == SAEditorCommon.EditorOptions.ProjectName);
+			currentProjectIndex = loaderInfo.Mods.FindIndex(item => item.ToLowerInvariant() == EditorOptions.ProjectName);
 
-			loaderInfo.Mods.RemoveAll(item => item == "TestSpawn");			
-			loaderInfo.Mods.RemoveAll(item => item == SAEditorCommon.EditorOptions.ProjectName);
+			loaderInfo.Mods.RemoveAll(item => item == "TestSpawn");
+			loaderInfo.Mods.RemoveAll(item => item == EditorOptions.ProjectName);
 
 			loaderInfo.Mods.Insert(0, "TestSpawn");
-			loaderInfo.Mods.Insert(1, SAEditorCommon.EditorOptions.ProjectName);
+			loaderInfo.Mods.Insert(1, EditorOptions.ProjectName);
 
 			IniSerializer.Serialize(loaderInfo, loaderIniPath);
 

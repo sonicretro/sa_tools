@@ -11,6 +11,7 @@ using SonicRetro.SAModel.Direct3D.TextureSystem;
 using SonicRetro.SAModel.SAEditorCommon;
 using SonicRetro.SAModel.SAEditorCommon.DataTypes;
 using SonicRetro.SAModel.SAEditorCommon.UI;
+using SonicRetro.SAModel.SAEditorCommon.UI.Gizmos;
 
 namespace SonicRetro.SAModel.SALVL
 {
@@ -43,7 +44,7 @@ namespace SonicRetro.SAModel.SALVL
 		EditorItemSelection selectedItems = new EditorItemSelection();
 		bool lookKeyDown;
 		bool zoomKeyDown;
-		TransformGizmo transformGizmo;
+		ItemGizmo transformGizmo;
 
 		private void MainForm_Load(object sender, EventArgs e)
 		{
@@ -126,7 +127,7 @@ namespace SonicRetro.SAModel.SALVL
 				}
 			}
 			loaded = true;
-			transformGizmo = new TransformGizmo();
+			transformGizmo = new ItemGizmo();
 			gizmoSpaceComboBox.Enabled = false;
 			gizmoSpaceComboBox.SelectedIndex = 0;
 

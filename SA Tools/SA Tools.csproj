@@ -41,11 +41,13 @@
     <Compile Include="EndianWriter.cs" />
     <Compile Include="HelperFunctions.cs" />
     <Compile Include="DataMapping.cs" />
-    <Compile Include="IniFile.cs" />
-    <Compile Include="IniSerializer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\IniFile\IniFile.csproj">
+      <Project>{31c2c1d1-0840-4d9d-9335-0e2a4342b2b6}</Project>
+      <Name>IniFile</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SAModel\SAModel.csproj">
       <Project>{0EE5D36F-CACF-41E9-8C9A-76FFD946B22D}</Project>
       <Name>SAModel</Name>
