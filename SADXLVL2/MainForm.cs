@@ -2,12 +2,12 @@
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
+using System.Diagnostics;
 using Microsoft.DirectX;
 using Microsoft.DirectX.Direct3D;
 using SA_Tools;
@@ -2990,7 +2990,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			}
 
 			LogMessageLine("AutoBuild: Updating Mod Profile");
-			string modIniFilePath = Settings.GamePath + string.Concat("\\mods\\", EditorOptions.ProjectName, "\\") +	"mod.ini";
+			string modIniFilePath = Settings.GamePath + string.Concat("\\mods\\", EditorOptions.ProjectName, "\\") + "mod.ini";
 			ModManagement.ModProfile modProfile = new ModManagement.ModProfile(modIniFilePath);
 
 			if(hasChangedModExeMapping)
@@ -3008,20 +3008,11 @@ namespace SonicRetro.SAModel.SADXLVL2
 
         private void PlayTestLevel()
         {
-			if(changedSinceSave) SaveStage(true);
-
-            // save start info data so that it can be forwarded to modloader
-			string spawnInfoPath = string.Concat(EditorOptions.GamePath, "\\Mods\\", "TestSpawn", "\\StartData.ini");
-
-			List<String> spawnInfo = new List<string>();
-			spawnInfo.Add(string.Format("level={0}", (byte)levelact.Level));
-			spawnInfo.Add(string.Format("act={0}", levelact.Act));
-			spawnInfo.Add(string.Format("character={0}", LevelData.Character));
-
-			File.WriteAllLines(spawnInfoPath, spawnInfo.ToArray());
+			if (changedSinceSave)
+				SaveStage(true);
 
             // Set our mods properly
-			string loaderIniPath = string.Concat(EditorOptions.GamePath, "\\Mods\\SADXModLoader.ini");
+			string loaderIniPath = Path.Combine(EditorOptions.GamePath, "mods\\SADXModLoader.ini");
 			ModManagement.LoaderInfo loaderInfo = IniSerializer.Deserialize<ModManagement.LoaderInfo>(loaderIniPath);
 			int testSpawnIndex = -1;
 			int currentProjectIndex = -1;
@@ -3037,12 +3028,13 @@ namespace SonicRetro.SAModel.SADXLVL2
 			IniSerializer.Serialize(loaderInfo, loaderIniPath);
 
             // set sonic.exe to start with the -testspawn flag
-			string sonicExePath = Path.GetFullPath(Settings.GamePath + "\\sonic.exe");
+			string sonicExePath = Path.GetFullPath(Path.Combine(Settings.GamePath, "sonic.exe"));
 			if (File.Exists(sonicExePath))
 			{
-				System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo(sonicExePath, "-testspawn");
+				string args = string.Format("-testspawn -level {0} -act {1} -character {2}", levelact.Level, levelact.Act, LevelData.Character);
+				ProcessStartInfo startInfo = new ProcessStartInfo(sonicExePath, args);
 				startInfo.WorkingDirectory = Path.GetDirectoryName(sonicExePath);
-				System.Diagnostics.Process sonicProcess = System.Diagnostics.Process.Start(startInfo);
+				Process sonicProcess = Process.Start(startInfo);
 			}
 			else
 			{

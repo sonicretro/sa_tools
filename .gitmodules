@@ -1,0 +1,3 @@
+[submodule "TestSpawn/sadx-mod-loader"]
+	path = TestSpawn/sadx-mod-loader
+	url = https://github.com/sonicretro/sadx-mod-loader.git
