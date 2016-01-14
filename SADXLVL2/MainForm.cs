@@ -3012,6 +3012,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 				SaveStage(true);
 
             // Set our mods properly
+			// TODO: Remove this stuff and add command line mod loading to the mod loader.
 			string loaderIniPath = Path.Combine(EditorOptions.GamePath, "mods\\SADXModLoader.ini");
 			ModManagement.LoaderInfo loaderInfo = IniSerializer.Deserialize<ModManagement.LoaderInfo>(loaderIniPath);
 			int testSpawnIndex = -1;
@@ -3031,7 +3032,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 			string sonicExePath = Path.GetFullPath(Path.Combine(Settings.GamePath, "sonic.exe"));
 			if (File.Exists(sonicExePath))
 			{
-				string args = string.Format("-testspawn -level {0} -act {1} -character {2}", levelact.Level, levelact.Act, LevelData.Character);
+				string args = string.Format("-testspawn -level {0} -act {1} -character {2}", (int)levelact.Level, levelact.Act, LevelData.Character);
 				ProcessStartInfo startInfo = new ProcessStartInfo(sonicExePath, args);
 				startInfo.WorkingDirectory = Path.GetDirectoryName(sonicExePath);
 				Process sonicProcess = Process.Start(startInfo);
