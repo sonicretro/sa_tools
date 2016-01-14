@@ -89,6 +89,7 @@ namespace DLLModGenerator
 			IniData = IniSerializer.Deserialize<DllIniData>(filename);
 			Environment.CurrentDirectory = projectFolder;
 			listView1.BeginUpdate();
+			listView1.Items.Clear();
 			foreach (KeyValuePair<string, FileTypeHash> item in IniData.Files)
 			{
 				bool modified = HelperFunctions.FileHash(string.Concat(projectFolder, "\\", item.Key)) != item.Value.Hash;
