@@ -12,6 +12,7 @@ using SonicRetro.SAModel.SAEditorCommon;
 using SonicRetro.SAModel.SAEditorCommon.UI;
 using SonicRetro.SAModel.SAEditorCommon.UI.Gizmos;
 using IniFile;
+using System.ComponentModel;
 
 namespace SonicRetro.SAModel.SAMDL
 {
@@ -71,7 +72,15 @@ namespace SonicRetro.SAModel.SAMDL
 		private void MainForm_Load(object sender, EventArgs e)
 		{
 			SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.Opaque, true);
-			d3ddevice = new Device(0, DeviceType.Hardware, panel1.Handle, CreateFlags.HardwareVertexProcessing, new PresentParameters[] { new PresentParameters() { Windowed = true, SwapEffect = SwapEffect.Discard, EnableAutoDepthStencil = true, AutoDepthStencilFormat = DepthFormat.D24X8 } });
+			d3ddevice = new Device(0, DeviceType.Hardware, panel1, CreateFlags.HardwareVertexProcessing,
+				new PresentParameters
+				{
+					Windowed = true,
+					SwapEffect = SwapEffect.Discard,
+					EnableAutoDepthStencil = true,
+					AutoDepthStencilFormat = DepthFormat.D24X8
+				});
+			d3ddevice.DeviceResizing += d3ddevice_DeviceResizing;
 			EditorOptions.Initialize(d3ddevice);
 			Gizmo.InitGizmo(d3ddevice);
 			transformGizmo = new NJSObjectGizmo();
@@ -80,6 +89,11 @@ namespace SonicRetro.SAModel.SAMDL
 			modelLibrary.SelectionChanged += modelLibrary_SelectionChanged;
 			if (Program.Arguments.Length > 0)
 				LoadFile(Program.Arguments[0]);
+		}
+
+		private void d3ddevice_DeviceResizing(object sender, CancelEventArgs e)
+		{
+			EditorOptions.Initialize(d3ddevice);
 		}
 
 		private void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -302,12 +316,9 @@ namespace SonicRetro.SAModel.SAMDL
 				DrawSelectedObject(model, transform);
 
 			d3ddevice.EndScene(); //all drawings before this line
-			d3ddevice.Present();
 
 			// draw helpers
 			transformGizmo.Draw(d3ddevice, cam);
-
-
 			d3ddevice.Present();
 		}
 
@@ -549,6 +560,8 @@ namespace SonicRetro.SAModel.SAMDL
 					mouseEventLocation = new Point(mouseEventLocation.X, mouseEventLocation.Y - mouseBounds.Height + mouseWrapThreshold);
 					performedWrap = true;
 				}
+
+				SelectedItemChanged();
 			}
 
 			if (e.Button == MouseButtons.Middle)
@@ -623,6 +636,8 @@ namespace SonicRetro.SAModel.SAMDL
 					Textures = new Texture[TextureInfo.Length];
 					for (int j = 0; j < TextureInfo.Length; j++)
 						Textures[j] = new Texture(d3ddevice, TextureInfo[j].Image, Usage.None, Pool.Managed);
+
+					DrawEntireModel();
 				}
 			}
 		}
