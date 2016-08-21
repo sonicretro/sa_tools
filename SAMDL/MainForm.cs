@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -11,8 +12,6 @@ using SonicRetro.SAModel.Direct3D.TextureSystem;
 using SonicRetro.SAModel.SAEditorCommon;
 using SonicRetro.SAModel.SAEditorCommon.UI;
 using SonicRetro.SAModel.SAEditorCommon.UI.Gizmos;
-using IniFile;
-using System.ComponentModel;
 
 namespace SonicRetro.SAModel.SAMDL
 {
@@ -270,7 +269,6 @@ namespace SonicRetro.SAModel.SAMDL
 
 		private void saveToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			
 			using (SaveFileDialog a = new SaveFileDialog()
 			{
 				DefaultExt = (outfmt == ModelFormat.Chunk ? "sa2" : "sa1") + "mdl",
@@ -848,11 +846,13 @@ namespace SonicRetro.SAModel.SAMDL
 			{
 				throw new System.NotImplementedException();
 
+/*
 				if (!modelLibrary.Visible)
 				{
 					modelLibrary.Show();
 					modelLibrary.BringToFront();
 				}
+*/
 			}
 		}
 		#endregion

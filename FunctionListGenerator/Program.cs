@@ -9,9 +9,17 @@ namespace FunctionListGenerator
 {
 	static class Program
 	{
-		static readonly Regex functiontype = new Regex(@"^(?<returntype>(?:const )?(?:signed |unsigned )?[A-Za-z_][A-Za-z_0-9]*(?: ?\*)?) ?(?<callconv>__cdecl|__stdcall|__fastcall|__thiscall|__usercall)?(?:<(?<returnreg>[^>]+)>)?\((?<arguments>.*)\)$", RegexOptions.CultureInvariant);
-		static readonly Regex argument = new Regex(@"(?<name>[^<]+)(?:<(?<register>[^>]+)>)?", RegexOptions.CultureInvariant);
+		static readonly Regex functiontype = new Regex(@"^(?<returntype>(?:const )?(?:signed |unsigned )?[A-Za-z_][A-Za-z_0-9]*(?: ?\*)?) ?(?<callconv>__cdecl|__stdcall|__fastcall|__thiscall|__usercall)?(?:@<(?<returnreg>[^>]+)>)?\((?<arguments>.*)\)$", RegexOptions.CultureInvariant);
+		static readonly Regex argument = new Regex(@"(?<name>[^<@]+)(?:@<(?<register>[^>]+)>)?", RegexOptions.CultureInvariant);
 		static readonly Regex functionptr = new Regex(@"\((?:__cdecl|__stdcall|__fastcall|__thiscall)? \*(?<name>[A-Za-z_][A-Za-z_0-9]*)\)", RegexOptions.CultureInvariant);
+
+		static readonly Dictionary<string, string> boolregs = new Dictionary<string, string>()
+		{
+			{ "eax", "al" },
+			{ "ebx", "bl" },
+			{ "ecx", "cl" },
+			{ "edx", "dl" }
+		};
 
 		static void Main(string[] args)
 		{
@@ -24,6 +32,9 @@ namespace FunctionListGenerator
 				filename = Console.ReadLine();
 			}
 			string[] lines = File.ReadAllLines(filename);
+			List<string> excludefuncs = new List<string>();
+			if (args.Length > 1)
+				excludefuncs = new List<string>(File.ReadAllLines(args[1]));
 			using (StreamWriter writer = File.CreateText(Path.ChangeExtension(filename, "h")))
 			{
 				writer.WriteLine("#define FunctionPointer(RETURN_TYPE, NAME, ARGS, ADDRESS) static RETURN_TYPE (__cdecl *const NAME)ARGS = (RETURN_TYPE (__cdecl *)ARGS)ADDRESS");
@@ -38,6 +49,7 @@ namespace FunctionListGenerator
 					string[] split = line.Split('|');
 					if (split.Length != 3) continue;
 					string address = split[0];
+					if (excludefuncs.Contains(address)) continue;
 					string name = split[1];
 					string type = split[2];
 					Match match = functiontype.Match(type);
@@ -53,16 +65,16 @@ namespace FunctionListGenerator
 							else if (returntype == "void" && arguments == "ObjectMaster *this")
 								writer.WriteLine("ObjectFunc({0}, {1});", name, address);
 							else
-								writer.WriteLine("FunctionPointer({0}, {1}, ({2}), {3});", returntype, name, arguments, address);
+								writer.WriteLine("FunctionPointer({0}, {1}, ({2}), {3});", returntype, name, arguments.Replace("this", "_this"), address);
 							break;
 						case "__stdcall":
-							writer.WriteLine("StdcallFunctionPointer({0}, {1}, ({2}), {3});", returntype, name, arguments, address);
+							writer.WriteLine("StdcallFunctionPointer({0}, {1}, ({2}), {3});", returntype, name, arguments.Replace("this", "_this"), address);
 							break;
 						case "__fastcall":
-							writer.WriteLine("FastcallFunctionPointer({0}, {1}, ({2}), {3});", returntype, name, arguments, address);
+							writer.WriteLine("FastcallFunctionPointer({0}, {1}, ({2}), {3});", returntype, name, arguments.Replace("this", "_this"), address);
 							break;
 						case "__thiscall":
-							writer.WriteLine("ThiscallFunctionPointer({0}, {1}, ({2}), {3});", returntype, name, arguments, address);
+							writer.WriteLine("ThiscallFunctionPointer({0}, {1}, ({2}), {3});", returntype, name, arguments.Replace("this", "_this"), address);
 							break;
 					}
 				}
@@ -71,6 +83,7 @@ namespace FunctionListGenerator
 					writer.WriteLine();
 					string[] split = line.Split('|');
 					string address = split[0];
+					if (excludefuncs.Contains(address)) continue;
 					string name = split[1];
 					string type = split[2];
 					writer.WriteLine("// {0}", type);
@@ -79,18 +92,57 @@ namespace FunctionListGenerator
 					string returnreg = match.Groups["returnreg"].Value;
 					string callconv = match.Groups["callconv"].Value;
 					string arguments = match.Groups["arguments"].Value;
+					List<string> arglist = new List<string>();
+					int c = 0;
+					while (c < arguments.Length)
+					{
+						if (arguments[c] == ' ')
+							c++;
+						int comma = arguments.IndexOf(',', c);
+						if (comma == -1)
+						{
+							arglist.Add(arguments.Substring(c));
+							break;
+						}
+						int paren = arguments.IndexOf('(', c);
+						if (paren > -1 && paren < comma)
+							comma = arguments.IndexOf(')', arguments.IndexOf('(', paren + 1)) + 1;
+						arglist.Add(arguments.Substring(c, comma - c));
+						c = comma + 1;
+					}
 					List<string> argnames = new List<string>();
 					List<string> argdecls = new List<string>();
 					List<string> argregs = new List<string>();
-					foreach (string arg in arguments.Split(','))
+					foreach (string arg in arglist)
 					{
 						match = argument.Match(arg);
 						string argdecl = match.Groups[1].Value.Trim();
-						argdecls.Add(argdecl);
+						string argname;
 						if (functionptr.IsMatch(argdecl))
-							argnames.Add(functionptr.Match(argdecl).Groups["name"].Value);
+							argname = functionptr.Match(argdecl).Groups["name"].Value;
 						else
-							argnames.Add(argdecl.Split(' ').Last().TrimStart('*'));
+							argname = argdecl.Split(' ').Last().TrimStart('*');
+						switch (argname)
+						{
+							case "size":
+								argname = "_size";
+								argdecl = argdecl.Replace("size", "_size");
+								break;
+							case "type":
+								argname = "_type";
+								argdecl = argdecl.Replace("type", "_type");
+								break;
+							case "this":
+								argname = "_this";
+								argdecl = argdecl.Replace("this", "_this");
+								break;
+							case "sp":
+								argname = "_sp";
+								argdecl = argdecl.Replace("sp", "_sp");
+								break;
+						}
+						argdecls.Add(argdecl);
+						argnames.Add(argname);
 						argregs.Add(match.Groups[2].Value);
 					}
 					writer.WriteLine("static const void *const {0}Ptr = (void*){1};", name, address);
@@ -103,7 +155,32 @@ namespace FunctionListGenerator
 					for (int i = argnames.Count - 1; i >= 0; i--)
 					{
 						if (string.IsNullOrEmpty(argregs[i]))
-							writer.WriteLine("\t\tpush [{0}]", argnames[i]);
+						{
+							bool isbyte = false;
+							if (!argdecls[i].Contains("*"))
+								switch (argdecls[i].Substring(argdecls[i].LastIndexOf(' ')))
+								{
+									case "char":
+									case "unsigned char":
+									case "signed char":
+									case "bool":
+									case "Sint8":
+									case "Uint8":
+									case "byte":
+									case "BOOL1":
+									case "uint8_t":
+									case "int8_t":
+										isbyte = true;
+										break;
+								}
+							if (isbyte)
+							{
+								writer.WriteLine("\t\tmovzx eax, [{0}]", argnames[i]);
+								writer.WriteLine("\t\tpush eax");
+							}
+							else
+								writer.WriteLine("\t\tpush [{0}]", argnames[i]);
+						}
 						else
 							writer.WriteLine("\t\tmov {0}, [{1}]", argregs[i], argnames[i]);
 					}
@@ -111,7 +188,11 @@ namespace FunctionListGenerator
 					int stackcnt = argregs.Count((item) => string.IsNullOrEmpty(item));
 					if (stackcnt > 0)
 						writer.WriteLine("\t\tadd esp, {0}", stackcnt * 4);
-					if (returntype != "void")
+					if (returntype == "bool")
+						writer.WriteLine("\t\tmov result, {0}", boolregs[returnreg]);
+					else if (returnreg == "st0")
+						writer.WriteLine("\t\tfstp result");
+					else if (returntype != "void")
 						writer.WriteLine("\t\tmov result, {0}", returnreg);
 					writer.WriteLine("\t}");
 					if (returntype != "void")

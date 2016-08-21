@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Drawing;
+using System.IO;
 
 namespace SADXsndSharp
 {
@@ -13,6 +14,8 @@ namespace SADXsndSharp
             InitializeComponent();
         }
 
+		string filename;
+		bool is2010;
         private List<FENTRY> files;
 
         private void Form1_Load(object sender, EventArgs e)
@@ -26,11 +29,15 @@ namespace SADXsndSharp
 
         private void LoadFile(string filename)
         {
-            byte[] file = System.IO.File.ReadAllBytes(filename);
+			this.filename = Path.GetFullPath(filename);
+            byte[] file = File.ReadAllBytes(filename);
             switch (System.Text.Encoding.ASCII.GetString(file, 0, 0x10))
             {
                 case "archive  V2.2\0\0\0":
+					is2010 = false;
+					break;
                 case "archive  V2.DMZ\0":
+					is2010 = true;
                     break;
                 default:
                     MessageBox.Show("Error: Unknown archive version/type");
@@ -49,25 +56,41 @@ namespace SADXsndSharp
                 it.ForeColor = Compress.isFileCompressed(files[i].file) ? Color.Blue : Color.Black;
             }
             listView1.EndUpdate();
+			Text = "SADXsndSharp - " + Path.GetFileName(filename);
+			saveToolStripMenuItem.Enabled = true;
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            OpenFileDialog a = new OpenFileDialog()
-            {
-                DefaultExt = "dat",
-                Filter = "DAT Files|*.dat|All Files|*.*"
-            };
-            if (a.ShowDialog() == DialogResult.OK)
-                LoadFile(a.FileName);
+			using (OpenFileDialog a = new OpenFileDialog()
+			{
+				DefaultExt = "dat",
+				Filter = "DAT Files|*.dat|All Files|*.*"
+			})
+				if (a.ShowDialog() == DialogResult.OK)
+					LoadFile(a.FileName);
         }
 
         private void extractAllToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            FolderBrowserDialog a = new FolderBrowserDialog() { ShowNewFolderButton = true };
-            if (a.ShowDialog(this) == DialogResult.OK)
-                foreach (FENTRY item in files)
-                    System.IO.File.WriteAllBytes(System.IO.Path.Combine(a.SelectedPath, item.name), Compress.ProcessBuffer(item.file));
+			using (FolderBrowserDialog a = new FolderBrowserDialog() { ShowNewFolderButton = true })
+			{
+				if (filename != null)
+					a.SelectedPath = Path.GetDirectoryName(filename);
+				if (a.ShowDialog(this) == DialogResult.OK)
+					using (StreamWriter sw = File.CreateText(Path.Combine(a.SelectedPath, "index.txt")))
+					{
+						List<FENTRY> list = new List<FENTRY>(files);
+						list.Sort((f1, f2) => StringComparer.OrdinalIgnoreCase.Compare(f1.name, f2.name));
+						foreach (FENTRY item in list)
+						{
+							sw.WriteLine(item.name);
+							File.WriteAllBytes(Path.Combine(a.SelectedPath, item.name), Compress.ProcessBuffer(item.file));
+						}
+						sw.Flush();
+						sw.Close();
+					}
+			}
         }
 
         ListViewItem selectedItem;
@@ -83,41 +106,39 @@ namespace SADXsndSharp
             }
         }
 
-        private void addFilesToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog a = new OpenFileDialog()
-            {
-                DefaultExt = "wav",
-                Filter = "WAV Files|*.wav|ADX Files|*.adx|All Files|*.*",
-                Multiselect = true
-            };
-            if (a.ShowDialog() == DialogResult.OK)
-            {
-                int i = files.Count;
-                foreach (string item in a.FileNames)
-                {
-                    files.Add(new FENTRY(item));
-                    imageList1.Images.Add(GetIcon(files[i].name));
-                    ListViewItem it = listView1.Items.Add(files[i].name, i);
-                    it.ForeColor = Compress.isFileCompressed(files[i].file) ? Color.Blue : Color.Black;
-                    i++;
-                }
-            }
-        }
+		private void addFilesToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			using (OpenFileDialog a = new OpenFileDialog()
+			{
+				DefaultExt = "wav",
+				Filter = "WAV Files|*.wav|ADX Files|*.adx|All Files|*.*",
+				Multiselect = true
+			})
+				if (a.ShowDialog() == DialogResult.OK)
+				{
+					int i = files.Count;
+					foreach (string item in a.FileNames)
+					{
+						files.Add(new FENTRY(item));
+						imageList1.Images.Add(GetIcon(files[i].name));
+						ListViewItem it = listView1.Items.Add(files[i].name, i);
+						it.ForeColor = Compress.isFileCompressed(files[i].file) ? Color.Blue : Color.Black;
+						i++;
+					}
+				}
+		}
 
         private void extractToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (selectedItem == null) return;
-            SaveFileDialog a = new SaveFileDialog()
+            using (SaveFileDialog a = new SaveFileDialog()
             {
                 DefaultExt = "wav",
                 Filter = "WAV Files|*.wav|ADX Files|*.adx|All Files|*.*",
                 FileName = selectedItem.Text
-            };
-            if (a.ShowDialog() == DialogResult.OK)
-            {
-                System.IO.File.WriteAllBytes(a.FileName, Compress.ProcessBuffer(files[listView1.Items.IndexOf(selectedItem)].file));
-            }
+            })
+				if (a.ShowDialog() == DialogResult.OK)
+					File.WriteAllBytes(a.FileName, Compress.ProcessBuffer(files[listView1.Items.IndexOf(selectedItem)].file));
         }
 
         private void replaceToolStripMenuItem_Click(object sender, EventArgs e)
@@ -125,48 +146,48 @@ namespace SADXsndSharp
             if (selectedItem == null) return;
             int i = listView1.Items.IndexOf(selectedItem);
             string fn = files[i].name;
-            OpenFileDialog a = new OpenFileDialog()
+            using (OpenFileDialog a = new OpenFileDialog()
             {
                 DefaultExt = "wav",
                 Filter = "WAV Files|*.wav|ADX Files|*.adx|All Files|*.*",
                 FileName = fn
-            };
-            if (a.ShowDialog() == DialogResult.OK)
-            {
-                files[i] = new FENTRY(a.FileName);
-                files[i].name = fn;
-                selectedItem.ForeColor = Compress.isFileCompressed(files[i].file) ? Color.Blue : Color.Black;
-            }
+            })
+				if (a.ShowDialog() == DialogResult.OK)
+				{
+					files[i] = new FENTRY(a.FileName);
+					files[i].name = fn;
+					selectedItem.ForeColor = Compress.isFileCompressed(files[i].file) ? Color.Blue : Color.Black;
+				}
         }
 
         private void insertToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (selectedItem == null) return;
-            OpenFileDialog a = new OpenFileDialog()
+            using (OpenFileDialog a = new OpenFileDialog()
             {
                 DefaultExt = "wav",
                 Filter = "WAV Files|*.wav|ADX Files|*.adx|All Files|*.*",
                 Multiselect = true
-            };
-            if (a.ShowDialog() == DialogResult.OK)
-            {
-                int i = listView1.Items.IndexOf(selectedItem);
-                foreach (string item in a.FileNames)
-                {
-                    files.Insert(i, new FENTRY(item));
-                    i++;
-                }
-                listView1.Items.Clear();
-                imageList1.Images.Clear();
-                listView1.BeginUpdate();
-                for (int j = 0; j < files.Count; j++)
-                {
-                    imageList1.Images.Add(GetIcon(files[j].name));
-                    ListViewItem it = listView1.Items.Add(files[j].name, j);
-                    it.ForeColor = Compress.isFileCompressed(files[j].file) ? Color.Blue : Color.Black;
-                }
-                listView1.EndUpdate();
-            }
+            })
+				if (a.ShowDialog() == DialogResult.OK)
+				{
+					int i = listView1.Items.IndexOf(selectedItem);
+					foreach (string item in a.FileNames)
+					{
+						files.Insert(i, new FENTRY(item));
+						i++;
+					}
+					listView1.Items.Clear();
+					imageList1.Images.Clear();
+					listView1.BeginUpdate();
+					for (int j = 0; j < files.Count; j++)
+					{
+						imageList1.Images.Add(GetIcon(files[j].name));
+						ListViewItem it = listView1.Items.Add(files[j].name, j);
+						it.ForeColor = Compress.isFileCompressed(files[j].file) ? Color.Blue : Color.Black;
+					}
+					listView1.EndUpdate();
+				}
         }
 
         private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
@@ -196,7 +217,7 @@ namespace SADXsndSharp
                     return;
                 }
             }
-            if (e.Label.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) > -1)
+            if (e.Label.IndexOfAny(Path.GetInvalidFileNameChars()) > -1)
             {
                 e.CancelEdit = true;
                 MessageBox.Show("This name contains invalid characters.");
@@ -208,16 +229,19 @@ namespace SADXsndSharp
 
         private void listView1_ItemActivate(object sender, EventArgs e)
         {
-            string fp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), files[listView1.SelectedIndices[0]].name);
-            System.IO.File.WriteAllBytes(fp, Compress.ProcessBuffer(files[listView1.SelectedIndices[0]].file));
+            string fp = Path.Combine(Path.GetTempPath(), files[listView1.SelectedIndices[0]].name);
+            File.WriteAllBytes(fp, Compress.ProcessBuffer(files[listView1.SelectedIndices[0]].file));
             System.Diagnostics.Process.Start(fp);
         }
 
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
         {
+			filename = null;
+			Text = "SADXsndSharp";
             files = new List<FENTRY>();
             listView1.Items.Clear();
             imageList1.Images.Clear();
+			saveToolStripMenuItem.Enabled = false;
         }
 
         private void listView1_DragEnter(object sender, DragEventArgs e)
@@ -244,61 +268,71 @@ namespace SADXsndSharp
 
         private void listView1_ItemDrag(object sender, ItemDragEventArgs e)
         {
-            string fn = System.IO.Path.Combine(System.IO.Path.GetTempPath(), files[listView1.SelectedIndices[0]].name);
-            System.IO.File.WriteAllBytes(fn, Compress.ProcessBuffer(files[listView1.SelectedIndices[0]].file));
+            string fn = Path.Combine(Path.GetTempPath(), files[listView1.SelectedIndices[0]].name);
+            File.WriteAllBytes(fn, Compress.ProcessBuffer(files[listView1.SelectedIndices[0]].file));
             DoDragDrop(new DataObject(DataFormats.FileDrop, new string[] { fn }), DragDropEffects.All);
         }
+
+		private void saveToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			SaveFile();
+		}
 
         private void saveAsToolStripMenuItem_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
             fileToolStripMenuItem.DropDown.Close();
-            SaveFileDialog a = new SaveFileDialog()
-            {
-                DefaultExt = "dat",
-                Filter = "DAT Files|*.dat|All Files|*.*"
-            };
-            if (a.ShowDialog() == DialogResult.OK)
-            {
-                int fsize = 0x14;
-                int hloc = fsize;
-                fsize += files.Count * 0xC;
-                int tloc = fsize;
-                foreach (FENTRY item in files)
-                {
-                    fsize += item.name.Length + 1;
-                }
-                int floc = fsize;
-                foreach (FENTRY item in files)
-                {
-                    fsize += item.file.Length;
-                }
-                byte[] file = new byte[fsize];
-                switch (saveAsToolStripMenuItem.DropDownItems.IndexOf(e.ClickedItem))
-                {
-                    case 0:
-                        System.Text.Encoding.ASCII.GetBytes("archive  V2.2").CopyTo(file, 0);
-                        break;
-                    case 1:
-                        System.Text.Encoding.ASCII.GetBytes("archive  V2.DMZ").CopyTo(file, 0);
-                        break;
-                }
-                BitConverter.GetBytes(files.Count).CopyTo(file, 0x10);
-                foreach (FENTRY item in files)
-                {
-                    BitConverter.GetBytes(tloc).CopyTo(file, hloc);
-                    hloc += 4;
-                    System.Text.Encoding.ASCII.GetBytes(item.name).CopyTo(file, tloc);
-                    tloc += item.name.Length + 1;
-                    BitConverter.GetBytes(floc).CopyTo(file, hloc);
-                    hloc += 4;
-                    item.file.CopyTo(file, floc);
-                    floc += item.file.Length;
-                    BitConverter.GetBytes(item.file.Length).CopyTo(file, hloc);
-                    hloc += 4;
-                }
-                System.IO.File.WriteAllBytes(a.FileName, file);
-            }
+			using (SaveFileDialog a = new SaveFileDialog()
+			{
+				DefaultExt = "dat",
+				Filter = "DAT Files|*.dat|All Files|*.*"
+			})
+			{
+				if (filename != null)
+					a.FileName = Path.GetFileName(filename);
+				if (a.ShowDialog() == DialogResult.OK)
+				{
+					filename = a.FileName;
+					Text = "SADXsndSharp - " + Path.GetFileName(a.FileName);
+					is2010 = saveAsToolStripMenuItem.DropDownItems.IndexOf(e.ClickedItem) > 0;
+					saveToolStripMenuItem.Enabled = true;
+					SaveFile();
+				}
+			}
         }
+
+		private void SaveFile()
+		{
+			int fsize = 0x14;
+			int hloc = fsize;
+			fsize += files.Count * 0xC;
+			int tloc = fsize;
+			foreach (FENTRY item in files)
+			{
+				fsize += item.name.Length + 1;
+			}
+			int floc = fsize;
+			foreach (FENTRY item in files)
+			{
+				fsize += item.file.Length;
+			}
+			byte[] file = new byte[fsize];
+			System.Text.Encoding.ASCII.GetBytes(is2010 ? "archive  V2.DMZ" : "archive  V2.2").CopyTo(file, 0);
+			BitConverter.GetBytes(files.Count).CopyTo(file, 0x10);
+			foreach (FENTRY item in files)
+			{
+				BitConverter.GetBytes(tloc).CopyTo(file, hloc);
+				hloc += 4;
+				System.Text.Encoding.ASCII.GetBytes(item.name).CopyTo(file, tloc);
+				tloc += item.name.Length + 1;
+				BitConverter.GetBytes(floc).CopyTo(file, hloc);
+				hloc += 4;
+				item.file.CopyTo(file, floc);
+				floc += item.file.Length;
+				BitConverter.GetBytes(item.file.Length).CopyTo(file, hloc);
+				hloc += 4;
+			}
+			File.WriteAllBytes(filename, file);
+		}
 
         [System.Runtime.InteropServices.DllImport("shell32.dll")]
         private static extern IntPtr ExtractIconA(int hInst, string lpszExeFileName, int nIconIndex);
@@ -345,8 +379,8 @@ namespace SADXsndSharp
 
         public FENTRY(string fileName)
         {
-            name = System.IO.Path.GetFileName(fileName);
-            file = System.IO.File.ReadAllBytes(fileName);
+            name = Path.GetFileName(fileName);
+            file = File.ReadAllBytes(fileName);
         }
 
         public FENTRY(byte[] file, int address)
