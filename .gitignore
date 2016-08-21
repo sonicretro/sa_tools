@@ -216,3 +216,4 @@ pip-log.txt
 /Concepts
 *.db
 *.opendb
+/ModGenerator/Config/SADX/TestSpawn
