@@ -167,6 +167,7 @@ namespace SonicRetro.SAModel.SADXLVL2
 		{
 			this.Shown -= LoadProject_Shown;
 			string projectINIFile = string.Concat(Settings.GamePath, "\\projects\\", Settings.RecentProject, "\\sadxlvl.ini");
+
 			LoadINI(projectINIFile);
 			ShowLevelSelect();
 		}
@@ -3042,6 +3043,13 @@ namespace SonicRetro.SAModel.SADXLVL2
 				MessageBox.Show("Couldn't start game, sonic.exe not found.");
 			}
 		}
-		#endregion
-	}
+        #endregion
+
+        private void inputTestToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ActionMapTest testWindow = new ActionMapTest();
+
+            testWindow.ShowDialog();
+        }
+    }
 }
